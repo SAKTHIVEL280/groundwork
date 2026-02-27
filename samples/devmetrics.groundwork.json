@@ -1,0 +1,405 @@
+{
+  "id": "sample-devmetrics-003",
+  "name": "DevMetrics",
+  "description": "Open-source GitHub analytics dashboard that visualizes your coding activity, PR review times, commit patterns, and productivity trends. Self-hosted with a beautiful UI.",
+  "progress": 0,
+  "disabledSections": [],
+  "sections": {
+    "problem": {
+      "statement": "Developers and engineering managers have no easy way to visualize their GitHub activity patterns and team productivity. GitHub's built-in contribution graph is too simplistic — it only shows commit frequency, not quality metrics like PR cycle time, review responsiveness, or focus areas.",
+      "impact": "Without visibility into development patterns, devs can't identify bottlenecks (like slow PR reviews), managers can't spot burnout signals (like weekend coding spikes), and teams can't measure improvement over time. Studies show teams with engineering metrics improve velocity by 20-30%.",
+      "currentSolution": "LinearB, Sleuth, and Pluralsight Flow offer this but cost $20-50/dev/month — way out of reach for indie devs and small teams. Some devs build one-off scripts to query the GitHub API, but these are fragile, ugly, and don't persist historical data."
+    },
+    "personas": [
+      {
+        "id": "persona-dev",
+        "name": "Solo Dev Alex",
+        "role": "Full-stack developer maintaining 5+ open source projects",
+        "painPoints": [
+          "No clue which repos consume most of my time",
+          "GitHub contribution graph doesn't show PR reviews or issues",
+          "Can't visualize coding patterns (am I burning out on weekends?)",
+          "Want to showcase productivity data on my portfolio"
+        ],
+        "goals": [
+          "See beautiful dashboards of my GitHub activity",
+          "Track PR merge time and review responsiveness",
+          "Get weekly email digest of my coding stats",
+          "Embed a widget on my portfolio showing live stats"
+        ]
+      },
+      {
+        "id": "persona-lead",
+        "name": "Tech Lead Morgan",
+        "role": "Engineering lead managing a 6-person team at a startup",
+        "painPoints": [
+          "Can't tell if PRs are being reviewed promptly",
+          "No visibility into team workload distribution",
+          "Existing tools like LinearB cost $30/dev/month — budget rejected",
+          "Sprint retros lack data — everything is gut feeling"
+        ],
+        "goals": [
+          "Team dashboard showing PR cycle times and review loads",
+          "Spot bottlenecks — who's blocked waiting for reviews",
+          "Track improvement trends sprint over sprint",
+          "Free/self-hosted solution I can spin up on our server"
+        ]
+      }
+    ],
+    "competitors": [
+      {
+        "id": "comp-linearb",
+        "name": "LinearB",
+        "url": "https://linearb.io",
+        "strengths": [
+          "Excellent DORA metrics and engineering benchmarks",
+          "Beautiful dashboards with actionable insights",
+          "Integrates with Jira, GitHub, GitLab, Bitbucket",
+          "WorkerB automation for workflow improvements"
+        ],
+        "gaps": [
+          "Expensive — $30/dev/month, minimum 5 seats",
+          "Overkill for solo devs or small OSS teams",
+          "Closed source, can't self-host",
+          "Data privacy concerns — sends all code metadata to their cloud"
+        ]
+      },
+      {
+        "id": "comp-github-insights",
+        "name": "GitHub Insights (native)",
+        "strengths": [
+          "Built into GitHub — no setup needed",
+          "Contribution graph is universally recognized",
+          "Pulse and traffic tabs for repo-level data",
+          "Free for all GitHub users"
+        ],
+        "gaps": [
+          "Extremely limited — just green squares and basic counts",
+          "No PR cycle time, review time, or team metrics",
+          "Can't compare across repos or time periods",
+          "No personal dashboard aggregating all activity"
+        ]
+      },
+      {
+        "id": "comp-gitstats",
+        "name": "git-stats / GitHub Wrapped",
+        "strengths": [
+          "Open source and free",
+          "Fun year-in-review format",
+          "Simple to run as CLI tool"
+        ],
+        "gaps": [
+          "One-time snapshot, no live dashboard",
+          "No web UI — CLI only output",
+          "Doesn't track PRs, reviews, or issues",
+          "No historical trend tracking"
+        ]
+      }
+    ],
+    "features": [
+      {
+        "id": "feat-auth",
+        "name": "GitHub OAuth Login",
+        "description": "Sign in with GitHub. Request repo, read:org, and user scopes. Store encrypted tokens. Support for GitHub Enterprise.",
+        "priority": "mvp",
+        "effort": "medium"
+      },
+      {
+        "id": "feat-sync",
+        "name": "Activity Sync Engine",
+        "description": "Background job that syncs commits, PRs, reviews, and issues from GitHub API. Incremental sync with rate limit handling. Stores in local DB.",
+        "priority": "mvp",
+        "effort": "large"
+      },
+      {
+        "id": "feat-personal-dash",
+        "name": "Personal Dashboard",
+        "description": "Overview cards: total commits (this week/month), PRs opened/merged, reviews given, lines changed. Heatmap calendar. Activity timeline.",
+        "priority": "mvp",
+        "effort": "large"
+      },
+      {
+        "id": "feat-pr-analytics",
+        "name": "PR Analytics",
+        "description": "PR cycle time (open → merge), time to first review, review iterations count. Charts: PR size distribution, merge time trends, stale PR alerts.",
+        "priority": "mvp",
+        "effort": "medium"
+      },
+      {
+        "id": "feat-repo-breakdown",
+        "name": "Repository Breakdown",
+        "description": "Per-repo stats: commit frequency, top contributors, language breakdown, issue close rate. Compare repos side by side.",
+        "priority": "mvp",
+        "effort": "medium"
+      },
+      {
+        "id": "feat-coding-hours",
+        "name": "Coding Hours Analysis",
+        "description": "Heatmap showing what hours/days you code most. Detect weekend work patterns. Compare productive vs non-productive time slots.",
+        "priority": "mvp",
+        "effort": "small"
+      },
+      {
+        "id": "feat-team-dash",
+        "name": "Team Dashboard",
+        "description": "Org-level dashboard: team velocity, review load distribution, PR bottleneck detection, bus factor (who knows what code).",
+        "priority": "later",
+        "effort": "large"
+      },
+      {
+        "id": "feat-digest",
+        "name": "Weekly Email Digest",
+        "description": "Automated weekly email with key stats, trends, and notable achievements. Customizable metrics. Opt-in per user.",
+        "priority": "later",
+        "effort": "medium"
+      },
+      {
+        "id": "feat-embed",
+        "name": "Embeddable Stats Widget",
+        "description": "Generate an SVG/iframe badge showing live GitHub stats. Customizable theme to match portfolio. Like shields.io but richer.",
+        "priority": "later",
+        "effort": "small"
+      },
+      {
+        "id": "feat-goals",
+        "name": "Coding Goals & Streaks",
+        "description": "Set personal goals (e.g., 5 PRs/week, review within 4 hours). Track streaks and get streak-break alerts.",
+        "priority": "cut",
+        "effort": "medium"
+      },
+      {
+        "id": "feat-ai-insights",
+        "name": "AI-Powered Insights",
+        "description": "LLM analyzes your patterns and generates natural language insights like 'Your PR merge time improved 30% this month' or 'Consider reviewing Alex's PRs faster'.",
+        "priority": "cut",
+        "effort": "large"
+      }
+    ],
+    "dataModel": [
+      {
+        "id": "entity-user",
+        "name": "User",
+        "fields": [
+          { "name": "id", "type": "uuid", "required": true },
+          { "name": "githubId", "type": "number", "required": true },
+          { "name": "username", "type": "string", "required": true },
+          { "name": "displayName", "type": "string", "required": true },
+          { "name": "avatarUrl", "type": "string", "required": false },
+          { "name": "accessToken", "type": "string", "required": true, "description": "Encrypted GitHub PAT" },
+          { "name": "lastSyncAt", "type": "date", "required": false },
+          { "name": "createdAt", "type": "date", "required": true }
+        ],
+        "relationships": [
+          { "targetEntity": "SyncedRepo", "type": "one-to-many" },
+          { "targetEntity": "CommitRecord", "type": "one-to-many" },
+          { "targetEntity": "PRRecord", "type": "one-to-many" }
+        ]
+      },
+      {
+        "id": "entity-repo",
+        "name": "SyncedRepo",
+        "fields": [
+          { "name": "id", "type": "uuid", "required": true },
+          { "name": "githubRepoId", "type": "number", "required": true },
+          { "name": "fullName", "type": "string", "required": true, "description": "owner/repo format" },
+          { "name": "language", "type": "string", "required": false },
+          { "name": "isPrivate", "type": "boolean", "required": true },
+          { "name": "userId", "type": "uuid", "required": true },
+          { "name": "lastSyncAt", "type": "date", "required": false }
+        ],
+        "relationships": [
+          { "targetEntity": "User", "type": "one-to-one" },
+          { "targetEntity": "CommitRecord", "type": "one-to-many" },
+          { "targetEntity": "PRRecord", "type": "one-to-many" }
+        ]
+      },
+      {
+        "id": "entity-commit",
+        "name": "CommitRecord",
+        "fields": [
+          { "name": "id", "type": "uuid", "required": true },
+          { "name": "sha", "type": "string", "required": true },
+          { "name": "message", "type": "text", "required": true },
+          { "name": "additions", "type": "number", "required": true },
+          { "name": "deletions", "type": "number", "required": true },
+          { "name": "committedAt", "type": "date", "required": true },
+          { "name": "repoId", "type": "uuid", "required": true },
+          { "name": "userId", "type": "uuid", "required": true }
+        ],
+        "relationships": [
+          { "targetEntity": "SyncedRepo", "type": "one-to-one" },
+          { "targetEntity": "User", "type": "one-to-one" }
+        ]
+      },
+      {
+        "id": "entity-pr",
+        "name": "PRRecord",
+        "fields": [
+          { "name": "id", "type": "uuid", "required": true },
+          { "name": "githubPrNumber", "type": "number", "required": true },
+          { "name": "title", "type": "string", "required": true },
+          { "name": "state", "type": "enum", "required": true, "description": "open | merged | closed" },
+          { "name": "additions", "type": "number", "required": true },
+          { "name": "deletions", "type": "number", "required": true },
+          { "name": "reviewCount", "type": "number", "required": true },
+          { "name": "openedAt", "type": "date", "required": true },
+          { "name": "firstReviewAt", "type": "date", "required": false },
+          { "name": "mergedAt", "type": "date", "required": false },
+          { "name": "cycleTimeHours", "type": "number", "required": false, "description": "Hours from open to merge" },
+          { "name": "repoId", "type": "uuid", "required": true },
+          { "name": "userId", "type": "uuid", "required": true }
+        ],
+        "relationships": [
+          { "targetEntity": "SyncedRepo", "type": "one-to-one" },
+          { "targetEntity": "User", "type": "one-to-one" },
+          { "targetEntity": "ReviewRecord", "type": "one-to-many" }
+        ]
+      },
+      {
+        "id": "entity-review",
+        "name": "ReviewRecord",
+        "fields": [
+          { "name": "id", "type": "uuid", "required": true },
+          { "name": "prId", "type": "uuid", "required": true },
+          { "name": "reviewerId", "type": "uuid", "required": true },
+          { "name": "state", "type": "enum", "required": true, "description": "approved | changes_requested | commented" },
+          { "name": "submittedAt", "type": "date", "required": true }
+        ],
+        "relationships": [
+          { "targetEntity": "PRRecord", "type": "one-to-one" },
+          { "targetEntity": "User", "type": "one-to-one" }
+        ]
+      }
+    ],
+    "stack": {
+      "frontend": "Next.js 14 + TypeScript + shadcn/ui + Tailwind CSS",
+      "backend": "Next.js API Routes + Prisma",
+      "database": "SQLite (self-hosted) / PostgreSQL (cloud)",
+      "hosting": "Self-hosted (Docker) or Vercel",
+      "auth": "NextAuth.js (GitHub OAuth)",
+      "other": ["Recharts (data visualization)", "Octokit (GitHub API client)", "BullMQ (background job queue)", "Resend (email digests)", "Docker + docker-compose"]
+    },
+    "screens": [
+      { "id": "screen-login", "name": "Login", "description": "Clean landing page with 'Sign in with GitHub' button. Shows app features and screenshots." },
+      { "id": "screen-dashboard", "name": "Personal Dashboard", "description": "4 stat cards (commits, PRs, reviews, lines), contribution heatmap, activity timeline, top repos chart." },
+      { "id": "screen-prs", "name": "PR Analytics", "description": "PR cycle time chart, time-to-first-review histogram, open PR list with age badges, merge rate trend." },
+      { "id": "screen-repos", "name": "Repository View", "description": "Repo selector, per-repo commit chart, language pie chart, contributor table, issue resolution time." },
+      { "id": "screen-hours", "name": "Coding Hours", "description": "Day-of-week × hour-of-day heatmap, most productive day/time callout, weekend work percentage." },
+      { "id": "screen-settings", "name": "Settings", "description": "Connected repos list with toggle, sync frequency, email digest preferences, theme (light/dark), data export." }
+    ],
+    "architecture": {
+      "components": [
+        { "id": "arch-frontend", "name": "Next.js App", "type": "frontend", "description": "Server-rendered React app with shadcn/ui components and Recharts visualizations" },
+        { "id": "arch-api", "name": "API Routes", "type": "backend", "description": "Next.js API routes handling auth, data queries, and sync triggers" },
+        { "id": "arch-db", "name": "SQLite / PostgreSQL", "type": "database", "description": "SQLite for local dev and self-hosted, PostgreSQL for cloud deployment" },
+        { "id": "arch-worker", "name": "BullMQ Worker", "type": "backend", "description": "Background job processor for GitHub API sync, rate limit management, and email digests" },
+        { "id": "arch-github", "name": "GitHub API", "type": "external", "description": "REST + GraphQL API for fetching commits, PRs, reviews, and org data" },
+        { "id": "arch-redis", "name": "Redis", "type": "service", "description": "Job queue storage for BullMQ, API response caching" },
+        { "id": "arch-email", "name": "Resend", "type": "external", "description": "Transactional email service for weekly digest emails" }
+      ],
+      "connections": [
+        { "id": "conn-1", "from": "arch-frontend", "to": "arch-api", "label": "Server Components + API calls", "protocol": "HTTP" },
+        { "id": "conn-2", "from": "arch-api", "to": "arch-db", "label": "Prisma ORM queries", "protocol": "TCP" },
+        { "id": "conn-3", "from": "arch-api", "to": "arch-worker", "label": "Enqueue sync jobs", "protocol": "Redis" },
+        { "id": "conn-4", "from": "arch-worker", "to": "arch-github", "label": "Fetch activity data", "protocol": "HTTPS" },
+        { "id": "conn-5", "from": "arch-worker", "to": "arch-db", "label": "Store synced records", "protocol": "TCP" },
+        { "id": "conn-6", "from": "arch-worker", "to": "arch-email", "label": "Send weekly digests", "protocol": "HTTPS" },
+        { "id": "conn-7", "from": "arch-api", "to": "arch-redis", "label": "Cache API responses", "protocol": "TCP" }
+      ]
+    },
+    "milestones": [
+      {
+        "id": "ms-1",
+        "name": "Phase 1: Auth & Sync (Week 1-2)",
+        "tasks": [
+          { "id": "t1", "title": "Set up Next.js + Prisma + Docker Compose", "completed": true },
+          { "id": "t2", "title": "Implement GitHub OAuth with NextAuth.js", "completed": true },
+          { "id": "t3", "title": "Build GitHub API sync engine with Octokit", "completed": false },
+          { "id": "t4", "title": "Set up BullMQ worker for background sync", "completed": false },
+          { "id": "t5", "title": "Handle API rate limits with exponential backoff", "completed": false }
+        ],
+        "status": "in-progress"
+      },
+      {
+        "id": "ms-2",
+        "name": "Phase 2: Personal Dashboard (Week 3-4)",
+        "tasks": [
+          { "id": "t6", "title": "Build stat cards component (commits, PRs, reviews, LOC)", "completed": false },
+          { "id": "t7", "title": "Build contribution heatmap with Recharts", "completed": false },
+          { "id": "t8", "title": "Build activity timeline component", "completed": false },
+          { "id": "t9", "title": "Build PR analytics page with cycle time charts", "completed": false },
+          { "id": "t10", "title": "Build coding hours heatmap", "completed": false }
+        ],
+        "status": "not-started"
+      },
+      {
+        "id": "ms-3",
+        "name": "Phase 3: Repo View & Settings (Week 5)",
+        "tasks": [
+          { "id": "t11", "title": "Build repository breakdown page", "completed": false },
+          { "id": "t12", "title": "Build settings page with repo toggle and sync config", "completed": false },
+          { "id": "t13", "title": "Add dark/light theme with system detection", "completed": false },
+          { "id": "t14", "title": "Build data export (CSV/JSON)", "completed": false }
+        ],
+        "status": "not-started"
+      },
+      {
+        "id": "ms-4",
+        "name": "Phase 4: Polish & Ship (Week 6)",
+        "tasks": [
+          { "id": "t15", "title": "Write Docker setup docs for self-hosting", "completed": false },
+          { "id": "t16", "title": "Build landing page with screenshots", "completed": false },
+          { "id": "t17", "title": "Write comprehensive README with setup guide", "completed": false },
+          { "id": "t18", "title": "Publish to GitHub and post on r/selfhosted", "completed": false },
+          { "id": "t19", "title": "Deploy demo instance on Vercel", "completed": false }
+        ],
+        "status": "not-started"
+      }
+    ],
+    "decisions": [
+      {
+        "id": "dec-charting",
+        "title": "Charting library?",
+        "options": ["Recharts", "Chart.js (react-chartjs-2)", "Nivo", "D3.js (raw)", "Tremor"],
+        "chosen": "Recharts",
+        "reasoning": "Recharts is the most React-native charting library — declarative components, great TypeScript support, and handles our chart types (line, bar, heatmap, pie) well. D3 is too low-level. Chart.js wrapper doesn't feel React-native. Nivo is good but heavier. Tremor is great but tied to its own design system."
+      },
+      {
+        "id": "dec-db",
+        "title": "Database for self-hosted version?",
+        "options": ["SQLite", "PostgreSQL only", "MongoDB", "MySQL"],
+        "chosen": "SQLite",
+        "reasoning": "SQLite is perfect for self-hosted: zero config, single file, embedded in the Docker container. Users just run docker-compose up and it works. PostgreSQL is offered as an option for teams/cloud deployment via env var switch. Prisma makes the switch seamless."
+      },
+      {
+        "id": "dec-ui",
+        "title": "UI component library?",
+        "options": ["shadcn/ui + Tailwind", "MUI v6", "Chakra UI", "Mantine", "Radix + custom CSS"],
+        "chosen": "shadcn/ui + Tailwind",
+        "reasoning": "shadcn/ui is perfect for open source: copy-pasted components (no dependency), fully customizable, beautiful defaults, great dark mode. MUI is heavier and feels more enterprise. Mantine is great but less popular in OSS circles."
+      },
+      {
+        "id": "dec-jobs",
+        "title": "Background job system?",
+        "options": ["BullMQ + Redis", "pg-boss (PostgreSQL)", "node-cron (simple)", "Quirrel (hosted)"],
+        "chosen": "BullMQ + Redis",
+        "reasoning": "BullMQ is the standard for Node.js job queues. Retry, scheduling, rate limiting all built in. Redis is tiny and easy to include in docker-compose. pg-boss is good but we need Redis for caching anyway. node-cron can't handle failures or retries."
+      },
+      {
+        "id": "dec-api-approach",
+        "title": "GitHub API: REST vs GraphQL?",
+        "options": ["REST API v3", "GraphQL API v4", "Both (mixed)"],
+        "chosen": "Both (mixed)",
+        "reasoning": "GraphQL for bulk queries (fetch all PRs with reviews in one call) — way more efficient. REST for simpler endpoints (user profile, repo list) and webhook handling. Octokit supports both seamlessly."
+      }
+    ]
+  },
+  "canvas": {
+    "nodes": [],
+    "edges": [],
+    "viewport": { "x": 0, "y": 0, "zoom": 1 }
+  },
+  "versions": [],
+  "createdAt": "2026-02-20T09:00:00.000Z",
+  "updatedAt": "2026-02-28T16:00:00.000Z"
+}

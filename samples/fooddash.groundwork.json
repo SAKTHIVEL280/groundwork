@@ -1,0 +1,429 @@
+{
+  "id": "sample-fooddash-002",
+  "name": "FoodDash",
+  "description": "Hyperlocal food delivery app connecting users with nearby home cooks and small restaurants. Focus on homemade meals at affordable prices with 30-min delivery guarantee.",
+  "progress": 0,
+  "disabledSections": [],
+  "sections": {
+    "problem": {
+      "statement": "Food delivery apps like Swiggy/Zomato mainly feature restaurants with high markups (30-40% platform fee + delivery). Home cooks and small tiffin services have no digital presence, so students and young professionals miss out on affordable, homemade meals near them.",
+      "impact": "Students in India spend ₹150-300 per meal on delivery apps while a home-cooked meal nearby could cost ₹60-100. There are 50M+ students and 100M+ working professionals who eat out daily. Home cooks (mostly women) lose potential income without a platform.",
+      "currentSolution": "People find home cooks through WhatsApp groups, word-of-mouth, or local flyers. Some use Swiggy/Zomato despite high prices. Instagram-based home bakeries exist but have no ordering/delivery system. No unified app exists for this niche."
+    },
+    "personas": [
+      {
+        "id": "persona-rahul",
+        "name": "Hungry Rahul",
+        "role": "College student living in a hostel, budget ₹3000/month for food",
+        "painPoints": [
+          "Mess food is terrible but delivery apps are too expensive",
+          "Knows aunties nearby cook great food but can't find them online",
+          "Wants variety — not the same mess dal-chawal every day",
+          "Has to wait 45-60 min for delivery during peak hours"
+        ],
+        "goals": [
+          "Eat homemade meals for under ₹100 per meal",
+          "Discover home cooks within 2km of campus",
+          "Get food delivered in under 30 minutes",
+          "Subscribe to weekly meal plans from favorite cooks"
+        ]
+      },
+      {
+        "id": "persona-anita",
+        "name": "Chef Anita",
+        "role": "Homemaker who cooks for 10-15 orders daily from her kitchen",
+        "painPoints": [
+          "Only gets customers through WhatsApp and word of mouth",
+          "Manually manages orders via phone calls — no system",
+          "Can't reach new customers beyond her locality",
+          "No delivery support — customers have to pick up"
+        ],
+        "goals": [
+          "Reach 50+ customers within 3km radius",
+          "Get a simple dashboard to manage daily orders",
+          "Have delivery handled by the platform",
+          "Build a rating and reputation to grow business"
+        ]
+      },
+      {
+        "id": "persona-sneha",
+        "name": "Working Sneha",
+        "role": "IT professional, works from home, health-conscious eater",
+        "painPoints": [
+          "Restaurant food is oily and unhealthy for daily eating",
+          "Cooking every day is exhausting after work",
+          "Meal prep services are expensive (₹200+ per meal)",
+          "Hard to find nutritious, home-style food on apps"
+        ],
+        "goals": [
+          "Get healthy home-cooked lunch delivered daily",
+          "Filter by diet preferences (low oil, no maida, vegan)",
+          "Set up auto-recurring orders for weekdays",
+          "Read reviews from real people about taste and hygiene"
+        ]
+      }
+    ],
+    "competitors": [
+      {
+        "id": "comp-swiggy",
+        "name": "Swiggy",
+        "url": "https://swiggy.com",
+        "strengths": [
+          "Massive restaurant network and delivery fleet",
+          "Excellent UX and real-time tracking",
+          "Swiggy Instamart for groceries too",
+          "Multi-billion dollar backing and brand trust"
+        ],
+        "gaps": [
+          "No support for home cooks or small kitchens",
+          "30-40% commission makes food expensive",
+          "Minimum order values exclude budget users",
+          "Homogeneous restaurant chains dominate listings"
+        ]
+      },
+      {
+        "id": "comp-zomato",
+        "name": "Zomato",
+        "url": "https://zomato.com",
+        "strengths": [
+          "Strong brand recognition and user reviews",
+          "Zomato Gold provides value for frequent users",
+          "Hyperpure supply chain for restaurants",
+          "Good discovery and rating system"
+        ],
+        "gaps": [
+          "Same restaurant-only model as Swiggy",
+          "High delivery fees for small orders",
+          "No home cook / tiffin service category",
+          "Focus on urban metros, weak in tier-2 cities"
+        ]
+      },
+      {
+        "id": "comp-tiffin",
+        "name": "Local Tiffin Services (WhatsApp-based)",
+        "strengths": [
+          "Cheapest option — ₹60-80 per meal",
+          "Personal touch and consistent home-style taste",
+          "Flexible — can customize meals on request",
+          "No platform commission, so prices stay low"
+        ],
+        "gaps": [
+          "No digital presence or discoverability",
+          "No payment integration — cash only",
+          "Unreliable — no tracking or delivery guarantee",
+          "Can't scale beyond walking distance"
+        ]
+      }
+    ],
+    "features": [
+      {
+        "id": "feat-discover",
+        "name": "Nearby Cook Discovery",
+        "description": "Location-based feed showing home cooks within 3km. Cards show today's menu, rating, price range, and delivery time estimate.",
+        "priority": "mvp",
+        "effort": "large"
+      },
+      {
+        "id": "feat-menu",
+        "name": "Daily Menu Management",
+        "description": "Cooks set their daily menu with items, prices, available quantity, and timing windows (lunch 11-2, dinner 7-10). Auto-closes when sold out.",
+        "priority": "mvp",
+        "effort": "medium"
+      },
+      {
+        "id": "feat-order",
+        "name": "Order & Checkout",
+        "description": "Add items to cart, apply coupons, choose delivery/pickup, pay via UPI/cards. Real-time order status updates.",
+        "priority": "mvp",
+        "effort": "large"
+      },
+      {
+        "id": "feat-delivery-track",
+        "name": "Live Delivery Tracking",
+        "description": "Real-time GPS tracking of delivery partner on a map. ETA updates, delivery partner contact, and photo confirmation on delivery.",
+        "priority": "mvp",
+        "effort": "large"
+      },
+      {
+        "id": "feat-rating",
+        "name": "Ratings & Reviews",
+        "description": "Rate meals 1-5 stars with optional photo review. Cooks see aggregate rating and recent feedback. Verified order badge.",
+        "priority": "mvp",
+        "effort": "medium"
+      },
+      {
+        "id": "feat-cook-dashboard",
+        "name": "Cook Dashboard",
+        "description": "Simple dashboard for cooks: today's orders, earnings, menu editor, reviews. Designed for non-tech-savvy users with large buttons.",
+        "priority": "mvp",
+        "effort": "medium"
+      },
+      {
+        "id": "feat-subscription",
+        "name": "Meal Subscriptions",
+        "description": "Subscribe to a cook for weekly/monthly meals. Auto-order with skip/pause option. Discounted pricing for subscribers.",
+        "priority": "later",
+        "effort": "large"
+      },
+      {
+        "id": "feat-diet-filter",
+        "name": "Dietary Filters",
+        "description": "Filter by veg/non-veg/vegan, cuisine type, calorie range, allergens. Cooks tag their meals accordingly.",
+        "priority": "later",
+        "effort": "small"
+      },
+      {
+        "id": "feat-cook-verify",
+        "name": "Cook Verification & FSSAI",
+        "description": "Verify home cooks with ID, kitchen photo, and optional FSSAI license. Verified badge boosts trust and ranking.",
+        "priority": "later",
+        "effort": "medium"
+      },
+      {
+        "id": "feat-referral",
+        "name": "Referral Program",
+        "description": "Users earn ₹50 credit for referring friends. Cooks earn bonus for first 10 orders. Viral growth loop.",
+        "priority": "cut",
+        "effort": "medium"
+      },
+      {
+        "id": "feat-ai-recommend",
+        "name": "AI Meal Recommendations",
+        "description": "ML-based suggestions based on past orders, time of day, dietary preferences, and trending meals nearby.",
+        "priority": "cut",
+        "effort": "large"
+      }
+    ],
+    "dataModel": [
+      {
+        "id": "entity-user",
+        "name": "User",
+        "fields": [
+          { "name": "id", "type": "uuid", "required": true },
+          { "name": "phone", "type": "string", "required": true },
+          { "name": "name", "type": "string", "required": true },
+          { "name": "role", "type": "enum", "required": true, "description": "customer | cook | delivery" },
+          { "name": "avatarUrl", "type": "string", "required": false },
+          { "name": "location", "type": "json", "required": true, "description": "lat, lng, address" },
+          { "name": "createdAt", "type": "date", "required": true }
+        ],
+        "relationships": [
+          { "targetEntity": "Order", "type": "one-to-many" },
+          { "targetEntity": "Review", "type": "one-to-many" }
+        ]
+      },
+      {
+        "id": "entity-cook",
+        "name": "CookProfile",
+        "fields": [
+          { "name": "id", "type": "uuid", "required": true },
+          { "name": "userId", "type": "uuid", "required": true },
+          { "name": "kitchenName", "type": "string", "required": true },
+          { "name": "description", "type": "text", "required": false },
+          { "name": "rating", "type": "number", "required": true },
+          { "name": "totalOrders", "type": "number", "required": true },
+          { "name": "isVerified", "type": "boolean", "required": true },
+          { "name": "fssaiLicense", "type": "string", "required": false },
+          { "name": "cuisineTypes", "type": "json", "required": true }
+        ],
+        "relationships": [
+          { "targetEntity": "User", "type": "one-to-one" },
+          { "targetEntity": "MenuItem", "type": "one-to-many" },
+          { "targetEntity": "Order", "type": "one-to-many" }
+        ]
+      },
+      {
+        "id": "entity-menu",
+        "name": "MenuItem",
+        "fields": [
+          { "name": "id", "type": "uuid", "required": true },
+          { "name": "cookId", "type": "uuid", "required": true },
+          { "name": "name", "type": "string", "required": true },
+          { "name": "description", "type": "string", "required": false },
+          { "name": "price", "type": "number", "required": true },
+          { "name": "imageUrl", "type": "string", "required": false },
+          { "name": "isVeg", "type": "boolean", "required": true },
+          { "name": "availableQty", "type": "number", "required": true },
+          { "name": "availableFrom", "type": "string", "required": true },
+          { "name": "availableUntil", "type": "string", "required": true }
+        ],
+        "relationships": [
+          { "targetEntity": "CookProfile", "type": "one-to-one" },
+          { "targetEntity": "OrderItem", "type": "one-to-many" }
+        ]
+      },
+      {
+        "id": "entity-order",
+        "name": "Order",
+        "fields": [
+          { "name": "id", "type": "uuid", "required": true },
+          { "name": "customerId", "type": "uuid", "required": true },
+          { "name": "cookId", "type": "uuid", "required": true },
+          { "name": "deliveryPartnerId", "type": "uuid", "required": false },
+          { "name": "status", "type": "enum", "required": true, "description": "placed | preparing | ready | picked | delivered | cancelled" },
+          { "name": "totalAmount", "type": "number", "required": true },
+          { "name": "deliveryFee", "type": "number", "required": true },
+          { "name": "deliveryAddress", "type": "json", "required": true },
+          { "name": "placedAt", "type": "date", "required": true },
+          { "name": "deliveredAt", "type": "date", "required": false }
+        ],
+        "relationships": [
+          { "targetEntity": "User", "type": "one-to-one" },
+          { "targetEntity": "CookProfile", "type": "one-to-one" },
+          { "targetEntity": "OrderItem", "type": "one-to-many" },
+          { "targetEntity": "Review", "type": "one-to-one" }
+        ]
+      },
+      {
+        "id": "entity-review",
+        "name": "Review",
+        "fields": [
+          { "name": "id", "type": "uuid", "required": true },
+          { "name": "orderId", "type": "uuid", "required": true },
+          { "name": "userId", "type": "uuid", "required": true },
+          { "name": "cookId", "type": "uuid", "required": true },
+          { "name": "rating", "type": "number", "required": true },
+          { "name": "comment", "type": "text", "required": false },
+          { "name": "photoUrl", "type": "string", "required": false },
+          { "name": "createdAt", "type": "date", "required": true }
+        ],
+        "relationships": [
+          { "targetEntity": "Order", "type": "one-to-one" },
+          { "targetEntity": "User", "type": "one-to-one" }
+        ]
+      }
+    ],
+    "stack": {
+      "frontend": "React Native (Expo SDK 52)",
+      "backend": "Node.js + Fastify",
+      "database": "PostgreSQL + PostGIS (location queries)",
+      "hosting": "AWS EC2 + S3 + CloudFront",
+      "auth": "Firebase Auth (phone OTP)",
+      "payments": "Razorpay (UPI + Cards)",
+      "other": ["Redis (caching & rate limiting)", "Socket.io (real-time tracking)", "Google Maps API", "Firebase Cloud Messaging (push notifications)"]
+    },
+    "screens": [
+      { "id": "screen-home", "name": "Home Feed", "description": "Location-based feed of nearby cooks with today's menu. Search bar, filters, and categories at top." },
+      { "id": "screen-cook-profile", "name": "Cook Profile", "description": "Cook's page with menu, ratings, reviews, kitchen photos, delivery radius info." },
+      { "id": "screen-cart", "name": "Cart & Checkout", "description": "Cart items from selected cook, delivery address, payment method (UPI/card), coupon field." },
+      { "id": "screen-tracking", "name": "Order Tracking", "description": "Real-time map with delivery partner location, order status steps, ETA countdown." },
+      { "id": "screen-orders", "name": "My Orders", "description": "Order history with reorder button, status badges, and rate/review CTA for delivered orders." },
+      { "id": "screen-cook-dash", "name": "Cook Dashboard", "description": "Today's orders list, earnings summary, menu editor toggle, new order notifications." },
+      { "id": "screen-profile", "name": "Profile & Settings", "description": "Name, phone, saved addresses, payment methods, notification preferences, support chat." }
+    ],
+    "architecture": {
+      "components": [
+        { "id": "arch-mobile", "name": "React Native App", "type": "frontend", "description": "Cross-platform mobile app for customers, cooks, and delivery partners" },
+        { "id": "arch-api", "name": "Fastify API Server", "type": "backend", "description": "REST API with JWT auth, rate limiting, and input validation" },
+        { "id": "arch-db", "name": "PostgreSQL + PostGIS", "type": "database", "description": "Spatial queries for nearby cook discovery, full ACID compliance" },
+        { "id": "arch-redis", "name": "Redis Cache", "type": "service", "description": "Session cache, rate limiting, and real-time delivery partner location" },
+        { "id": "arch-firebase", "name": "Firebase", "type": "external", "description": "Phone OTP auth + push notifications via FCM" },
+        { "id": "arch-razorpay", "name": "Razorpay", "type": "external", "description": "Payment gateway for UPI, cards, and wallets" },
+        { "id": "arch-maps", "name": "Google Maps API", "type": "external", "description": "Geocoding, distance matrix, and live tracking map" },
+        { "id": "arch-socket", "name": "Socket.io Server", "type": "backend", "description": "WebSocket server for real-time order updates and delivery tracking" }
+      ],
+      "connections": [
+        { "id": "conn-1", "from": "arch-mobile", "to": "arch-api", "label": "REST API calls", "protocol": "HTTPS" },
+        { "id": "conn-2", "from": "arch-mobile", "to": "arch-socket", "label": "Live tracking", "protocol": "WebSocket" },
+        { "id": "conn-3", "from": "arch-api", "to": "arch-db", "label": "Spatial queries", "protocol": "TCP" },
+        { "id": "conn-4", "from": "arch-api", "to": "arch-redis", "label": "Cache & sessions", "protocol": "TCP" },
+        { "id": "conn-5", "from": "arch-api", "to": "arch-firebase", "label": "OTP + Push", "protocol": "HTTPS" },
+        { "id": "conn-6", "from": "arch-api", "to": "arch-razorpay", "label": "Payments", "protocol": "HTTPS" },
+        { "id": "conn-7", "from": "arch-mobile", "to": "arch-maps", "label": "Maps & geocoding", "protocol": "HTTPS" }
+      ]
+    },
+    "milestones": [
+      {
+        "id": "ms-1",
+        "name": "Phase 1: Foundation (Week 1-3)",
+        "tasks": [
+          { "id": "t1", "title": "Set up Expo project with navigation", "completed": true },
+          { "id": "t2", "title": "Build Firebase phone OTP auth flow", "completed": true },
+          { "id": "t3", "title": "Design PostGIS schema for location queries", "completed": true },
+          { "id": "t4", "title": "Build Fastify API with basic CRUD", "completed": false },
+          { "id": "t5", "title": "Set up CI/CD with EAS Build", "completed": false }
+        ],
+        "status": "in-progress"
+      },
+      {
+        "id": "ms-2",
+        "name": "Phase 2: Core Customer Experience (Week 4-6)",
+        "tasks": [
+          { "id": "t6", "title": "Build home feed with nearby cooks (PostGIS ST_DWithin)", "completed": false },
+          { "id": "t7", "title": "Implement cook profile page with menu", "completed": false },
+          { "id": "t8", "title": "Build cart and Razorpay checkout flow", "completed": false },
+          { "id": "t9", "title": "Build order tracking with Socket.io", "completed": false },
+          { "id": "t10", "title": "Build ratings and review system", "completed": false }
+        ],
+        "status": "not-started"
+      },
+      {
+        "id": "ms-3",
+        "name": "Phase 3: Cook & Delivery Side (Week 7-8)",
+        "tasks": [
+          { "id": "t11", "title": "Build cook registration and verification flow", "completed": false },
+          { "id": "t12", "title": "Build cook dashboard with order management", "completed": false },
+          { "id": "t13", "title": "Build delivery partner app flow", "completed": false },
+          { "id": "t14", "title": "Implement push notifications for new orders", "completed": false }
+        ],
+        "status": "not-started"
+      },
+      {
+        "id": "ms-4",
+        "name": "Phase 4: Launch & Iterate (Week 9-10)",
+        "tasks": [
+          { "id": "t15", "title": "Beta test with 10 cooks in local area", "completed": false },
+          { "id": "t16", "title": "Fix bugs from beta feedback", "completed": false },
+          { "id": "t17", "title": "Submit to App Store and Play Store", "completed": false },
+          { "id": "t18", "title": "Launch marketing: college WhatsApp groups + Instagram", "completed": false }
+        ],
+        "status": "not-started"
+      }
+    ],
+    "decisions": [
+      {
+        "id": "dec-framework",
+        "title": "Mobile framework?",
+        "options": ["React Native (Expo)", "Flutter", "Kotlin Multiplatform", "Native (Swift + Kotlin)"],
+        "chosen": "React Native (Expo)",
+        "reasoning": "Already know React. Expo simplifies builds, OTA updates, and has great ecosystem. Flutter would mean learning Dart. Native doubles the codebase. KMP is too new."
+      },
+      {
+        "id": "dec-backend",
+        "title": "Backend framework?",
+        "options": ["Fastify", "Express.js", "NestJS", "Django"],
+        "chosen": "Fastify",
+        "reasoning": "2-3x faster than Express, built-in schema validation, great TypeScript support. NestJS is over-engineered for an MVP. Django would mean switching to Python."
+      },
+      {
+        "id": "dec-location",
+        "title": "How to handle location-based queries?",
+        "options": ["PostGIS (spatial SQL)", "MongoDB Geospatial", "ElasticSearch Geo", "In-memory calculation"],
+        "chosen": "PostGIS (spatial SQL)",
+        "reasoning": "PostGIS is the gold standard for spatial queries. ST_DWithin for radius search is incredibly fast with GiST indexes. We already use PostgreSQL so no extra database. MongoDB geo is okay but we prefer SQL."
+      },
+      {
+        "id": "dec-payments",
+        "title": "Payment gateway?",
+        "options": ["Razorpay", "Cashfree", "PayU", "Stripe"],
+        "chosen": "Razorpay",
+        "reasoning": "Best UPI integration in India. Great developer docs. Split payments feature for cook payouts. Stripe doesn't support UPI well. Razorpay has instant settlement option."
+      },
+      {
+        "id": "dec-realtime",
+        "title": "Real-time delivery tracking approach?",
+        "options": ["Socket.io", "Server-Sent Events", "Firebase Realtime DB", "Polling every 5s"],
+        "chosen": "Socket.io",
+        "reasoning": "Bidirectional communication needed for both tracking updates and order status changes. Firebase Realtime DB adds vendor lock-in. SSE is one-way only. Polling wastes bandwidth."
+      }
+    ]
+  },
+  "canvas": {
+    "nodes": [],
+    "edges": [],
+    "viewport": { "x": 0, "y": 0, "zoom": 1 }
+  },
+  "versions": [],
+  "createdAt": "2026-02-10T08:00:00.000Z",
+  "updatedAt": "2026-02-28T11:00:00.000Z"
+}

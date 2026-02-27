@@ -1,0 +1,395 @@
+{
+  "id": "sample-studybuddy-001",
+  "name": "StudyBuddy",
+  "description": "AI-powered study companion app that helps college students organize notes, generate flashcards, and track study sessions with smart reminders.",
+  "progress": 0,
+  "disabledSections": [],
+  "sections": {
+    "problem": {
+      "statement": "College students struggle to organize scattered notes across multiple courses, create effective study materials, and maintain consistent study habits. Most end up cramming before exams because they lack a structured review system.",
+      "impact": "Poor study habits lead to lower grades, increased stress and anxiety, and wasted time re-reading notes instead of actively recalling. Studies show 70% of students feel underprepared for exams despite spending hours studying.",
+      "currentSolution": "Students currently use a mix of Google Docs, Notion, Anki, and paper notes. This scattered approach means context-switching between apps, no unified progress tracking, and manual flashcard creation that takes hours."
+    },
+    "personas": [
+      {
+        "id": "persona-sam",
+        "name": "Stressed Sam",
+        "role": "Second-year CS student taking 5 courses",
+        "painPoints": [
+          "Notes are scattered across Google Docs, Notion, and paper",
+          "Spends 2+ hours making flashcards manually every week",
+          "Forgets to review until the night before exams",
+          "Can't tell which topics need the most revision"
+        ],
+        "goals": [
+          "Have all notes in one searchable place",
+          "Auto-generate flashcards from lecture notes",
+          "Get smart reminders for spaced repetition",
+          "See a clear dashboard of study progress per course"
+        ]
+      },
+      {
+        "id": "persona-priya",
+        "name": "Organized Priya",
+        "role": "Final-year business student, part-time job",
+        "painPoints": [
+          "Limited study time due to work schedule",
+          "Hard to prioritize which subjects need attention",
+          "Existing apps are too complex or too simple",
+          "No way to share study materials with classmates easily"
+        ],
+        "goals": [
+          "Maximize study efficiency in short time blocks",
+          "AI-suggested study priorities based on upcoming exams",
+          "Simple, clean UI that doesn't waste time",
+          "Export and share flashcard decks with friends"
+        ]
+      }
+    ],
+    "competitors": [
+      {
+        "id": "comp-anki",
+        "name": "Anki",
+        "url": "https://apps.ankiweb.net",
+        "strengths": [
+          "Best-in-class spaced repetition algorithm",
+          "Massive community-shared deck library",
+          "Highly customizable card templates",
+          "Free and open source"
+        ],
+        "gaps": [
+          "Ugly, outdated UI from 2006",
+          "Steep learning curve for new users",
+          "No AI-powered card generation",
+          "No note-taking — only flashcards"
+        ]
+      },
+      {
+        "id": "comp-quizlet",
+        "name": "Quizlet",
+        "url": "https://quizlet.com",
+        "strengths": [
+          "Beautiful, modern interface",
+          "Multiple study modes (learn, test, match)",
+          "Large existing user base",
+          "Good mobile experience"
+        ],
+        "gaps": [
+          "Paywalled most useful features (2024 changes)",
+          "No note organization — only flashcards",
+          "AI features locked behind $8/mo subscription",
+          "No spaced repetition scheduling"
+        ]
+      },
+      {
+        "id": "comp-notion",
+        "name": "Notion",
+        "url": "https://notion.so",
+        "strengths": [
+          "Excellent note organization with databases",
+          "Flexible and powerful for any workflow",
+          "Good collaboration features",
+          "Free for students"
+        ],
+        "gaps": [
+          "No built-in flashcard or quiz system",
+          "Overwhelming for simple study workflows",
+          "Slow on mobile",
+          "No study-specific features like spaced repetition"
+        ]
+      }
+    ],
+    "features": [
+      {
+        "id": "feat-notes",
+        "name": "Smart Note Editor",
+        "description": "Rich text editor with markdown support, code blocks, LaTeX math, and image paste. Notes are organized by course/subject.",
+        "priority": "mvp",
+        "effort": "large"
+      },
+      {
+        "id": "feat-ai-cards",
+        "name": "AI Flashcard Generator",
+        "description": "Select any note section and auto-generate flashcards using AI. Supports Q&A, fill-in-the-blank, and multiple choice formats.",
+        "priority": "mvp",
+        "effort": "large"
+      },
+      {
+        "id": "feat-spaced-rep",
+        "name": "Spaced Repetition Engine",
+        "description": "SM-2 algorithm that schedules card reviews at optimal intervals. Shows due cards count per deck on dashboard.",
+        "priority": "mvp",
+        "effort": "medium"
+      },
+      {
+        "id": "feat-dashboard",
+        "name": "Study Dashboard",
+        "description": "Overview of all courses, upcoming exams, cards due for review, study streaks, and weekly study time chart.",
+        "priority": "mvp",
+        "effort": "medium"
+      },
+      {
+        "id": "feat-study-timer",
+        "name": "Pomodoro Study Timer",
+        "description": "Built-in 25/5 Pomodoro timer with session logging. Tracks total study time per course.",
+        "priority": "mvp",
+        "effort": "small"
+      },
+      {
+        "id": "feat-course-mgmt",
+        "name": "Course Management",
+        "description": "Create courses with name, color, professor, schedule. Set exam dates for smart priority suggestions.",
+        "priority": "mvp",
+        "effort": "small"
+      },
+      {
+        "id": "feat-search",
+        "name": "Full-Text Search",
+        "description": "Search across all notes and flashcards instantly. Filter by course, date, or tag.",
+        "priority": "mvp",
+        "effort": "medium"
+      },
+      {
+        "id": "feat-share",
+        "name": "Deck Sharing",
+        "description": "Export flashcard decks as links or JSON. Import shared decks from classmates.",
+        "priority": "later",
+        "effort": "medium"
+      },
+      {
+        "id": "feat-ai-quiz",
+        "name": "AI Practice Quizzes",
+        "description": "AI generates timed practice quizzes from your notes with answers and explanations.",
+        "priority": "later",
+        "effort": "large"
+      },
+      {
+        "id": "feat-collab",
+        "name": "Study Groups",
+        "description": "Create shared study rooms where friends can see each other's progress and share materials.",
+        "priority": "cut",
+        "effort": "large"
+      }
+    ],
+    "dataModel": [
+      {
+        "id": "entity-user",
+        "name": "User",
+        "fields": [
+          { "name": "id", "type": "uuid", "required": true },
+          { "name": "email", "type": "string", "required": true },
+          { "name": "displayName", "type": "string", "required": true },
+          { "name": "avatarUrl", "type": "string", "required": false },
+          { "name": "studyStreak", "type": "number", "required": true },
+          { "name": "totalStudyMinutes", "type": "number", "required": true },
+          { "name": "createdAt", "type": "date", "required": true }
+        ],
+        "relationships": [
+          { "targetEntity": "Course", "type": "one-to-many" },
+          { "targetEntity": "StudySession", "type": "one-to-many" }
+        ]
+      },
+      {
+        "id": "entity-course",
+        "name": "Course",
+        "fields": [
+          { "name": "id", "type": "uuid", "required": true },
+          { "name": "name", "type": "string", "required": true },
+          { "name": "color", "type": "string", "required": true },
+          { "name": "professor", "type": "string", "required": false },
+          { "name": "nextExamDate", "type": "date", "required": false },
+          { "name": "userId", "type": "uuid", "required": true }
+        ],
+        "relationships": [
+          { "targetEntity": "User", "type": "one-to-one" },
+          { "targetEntity": "Note", "type": "one-to-many" },
+          { "targetEntity": "Deck", "type": "one-to-many" }
+        ]
+      },
+      {
+        "id": "entity-note",
+        "name": "Note",
+        "fields": [
+          { "name": "id", "type": "uuid", "required": true },
+          { "name": "title", "type": "string", "required": true },
+          { "name": "content", "type": "json", "required": true },
+          { "name": "courseId", "type": "uuid", "required": true },
+          { "name": "tags", "type": "json", "required": false },
+          { "name": "updatedAt", "type": "date", "required": true }
+        ],
+        "relationships": [
+          { "targetEntity": "Course", "type": "one-to-one" },
+          { "targetEntity": "Deck", "type": "one-to-many" }
+        ]
+      },
+      {
+        "id": "entity-deck",
+        "name": "Deck",
+        "fields": [
+          { "name": "id", "type": "uuid", "required": true },
+          { "name": "name", "type": "string", "required": true },
+          { "name": "courseId", "type": "uuid", "required": true },
+          { "name": "sourceNoteId", "type": "uuid", "required": false },
+          { "name": "cardCount", "type": "number", "required": true },
+          { "name": "dueCount", "type": "number", "required": true }
+        ],
+        "relationships": [
+          { "targetEntity": "Course", "type": "one-to-one" },
+          { "targetEntity": "Card", "type": "one-to-many" }
+        ]
+      },
+      {
+        "id": "entity-card",
+        "name": "Card",
+        "fields": [
+          { "name": "id", "type": "uuid", "required": true },
+          { "name": "front", "type": "text", "required": true },
+          { "name": "back", "type": "text", "required": true },
+          { "name": "deckId", "type": "uuid", "required": true },
+          { "name": "easeFactor", "type": "number", "required": true },
+          { "name": "interval", "type": "number", "required": true },
+          { "name": "nextReviewDate", "type": "date", "required": true }
+        ],
+        "relationships": [
+          { "targetEntity": "Deck", "type": "one-to-one" }
+        ]
+      },
+      {
+        "id": "entity-session",
+        "name": "StudySession",
+        "fields": [
+          { "name": "id", "type": "uuid", "required": true },
+          { "name": "userId", "type": "uuid", "required": true },
+          { "name": "courseId", "type": "uuid", "required": false },
+          { "name": "durationMinutes", "type": "number", "required": true },
+          { "name": "cardsReviewed", "type": "number", "required": true },
+          { "name": "startedAt", "type": "date", "required": true }
+        ],
+        "relationships": [
+          { "targetEntity": "User", "type": "one-to-one" },
+          { "targetEntity": "Course", "type": "one-to-one" }
+        ]
+      }
+    ],
+    "stack": {
+      "frontend": "Next.js 14 + TypeScript + Tailwind CSS",
+      "backend": "Next.js API Routes + tRPC",
+      "database": "PostgreSQL (Supabase)",
+      "hosting": "Vercel",
+      "auth": "Supabase Auth (Google + GitHub OAuth)",
+      "other": ["Groq API (AI flashcard gen)", "Tiptap (rich text editor)", "Zustand (state)", "Framer Motion (animations)"]
+    },
+    "screens": [
+      { "id": "screen-landing", "name": "Landing Page", "description": "Marketing page with hero, features, testimonials, and sign-up CTA. Dark/light theme." },
+      { "id": "screen-dashboard", "name": "Dashboard", "description": "Overview: courses grid, due cards count, study streak, weekly chart, upcoming exams banner." },
+      { "id": "screen-course", "name": "Course View", "description": "Single course page with tabs: Notes, Decks, Stats. Shows exam countdown if set." },
+      { "id": "screen-editor", "name": "Note Editor", "description": "Full-screen rich text editor with toolbar, AI generate button, and auto-save indicator." },
+      { "id": "screen-review", "name": "Flashcard Review", "description": "Card flip animation, difficulty buttons (Again/Hard/Good/Easy), progress bar showing remaining cards." },
+      { "id": "screen-timer", "name": "Study Timer", "description": "Pomodoro timer with circular progress, session counter, and break notifications." },
+      { "id": "screen-settings", "name": "Settings", "description": "Profile, appearance (theme/accent), notification preferences, API key for AI, data export." }
+    ],
+    "architecture": {
+      "components": [
+        { "id": "arch-frontend", "name": "Next.js Frontend", "type": "frontend", "description": "SSR React app with app router, server components for SEO pages" },
+        { "id": "arch-api", "name": "tRPC API Layer", "type": "backend", "description": "Type-safe API procedures for all CRUD operations" },
+        { "id": "arch-db", "name": "Supabase PostgreSQL", "type": "database", "description": "Primary database with row-level security policies" },
+        { "id": "arch-auth", "name": "Supabase Auth", "type": "service", "description": "OAuth provider handling Google and GitHub sign-in" },
+        { "id": "arch-ai", "name": "Groq AI Service", "type": "external", "description": "LLM API for flashcard generation and quiz creation" },
+        { "id": "arch-storage", "name": "Supabase Storage", "type": "service", "description": "File storage for note images and attachments" }
+      ],
+      "connections": [
+        { "id": "conn-1", "from": "arch-frontend", "to": "arch-api", "label": "tRPC calls", "protocol": "HTTP" },
+        { "id": "conn-2", "from": "arch-api", "to": "arch-db", "label": "Prisma queries", "protocol": "TCP" },
+        { "id": "conn-3", "from": "arch-frontend", "to": "arch-auth", "label": "OAuth flow", "protocol": "HTTPS" },
+        { "id": "conn-4", "from": "arch-api", "to": "arch-ai", "label": "Generate cards", "protocol": "REST" },
+        { "id": "conn-5", "from": "arch-frontend", "to": "arch-storage", "label": "Image upload", "protocol": "HTTPS" }
+      ]
+    },
+    "milestones": [
+      {
+        "id": "ms-1",
+        "name": "Foundation Sprint (Week 1-2)",
+        "tasks": [
+          { "id": "t1", "title": "Set up Next.js + Supabase project", "completed": true },
+          { "id": "t2", "title": "Implement Google/GitHub OAuth", "completed": true },
+          { "id": "t3", "title": "Design and apply theme + typography", "completed": true },
+          { "id": "t4", "title": "Create database schema and migrations", "completed": false },
+          { "id": "t5", "title": "Build sidebar navigation layout", "completed": false }
+        ],
+        "status": "in-progress"
+      },
+      {
+        "id": "ms-2",
+        "name": "Core Features (Week 3-5)",
+        "tasks": [
+          { "id": "t6", "title": "Build course creation and management", "completed": false },
+          { "id": "t7", "title": "Implement Tiptap note editor with auto-save", "completed": false },
+          { "id": "t8", "title": "Build flashcard review UI with flip animation", "completed": false },
+          { "id": "t9", "title": "Implement SM-2 spaced repetition algorithm", "completed": false },
+          { "id": "t10", "title": "Build Pomodoro timer component", "completed": false }
+        ],
+        "status": "not-started"
+      },
+      {
+        "id": "ms-3",
+        "name": "AI Integration (Week 6)",
+        "tasks": [
+          { "id": "t11", "title": "Integrate Groq API with prompt engineering", "completed": false },
+          { "id": "t12", "title": "Build AI flashcard generation from notes", "completed": false },
+          { "id": "t13", "title": "Add loading states and error handling", "completed": false }
+        ],
+        "status": "not-started"
+      },
+      {
+        "id": "ms-4",
+        "name": "Polish & Launch (Week 7-8)",
+        "tasks": [
+          { "id": "t14", "title": "Build dashboard with charts and stats", "completed": false },
+          { "id": "t15", "title": "Add full-text search across notes and cards", "completed": false },
+          { "id": "t16", "title": "Mobile responsiveness pass", "completed": false },
+          { "id": "t17", "title": "Deploy to Vercel and configure domain", "completed": false },
+          { "id": "t18", "title": "Write README and record demo video", "completed": false }
+        ],
+        "status": "not-started"
+      }
+    ],
+    "decisions": [
+      {
+        "id": "dec-editor",
+        "title": "Which rich text editor to use?",
+        "options": ["Tiptap", "Slate.js", "Lexical (Meta)", "BlockNote"],
+        "chosen": "Tiptap",
+        "reasoning": "Tiptap has the best DX, excellent docs, built-in extensions for code blocks and math, and great community. Slate is too low-level. Lexical is powerful but overkill. BlockNote is nice but less mature."
+      },
+      {
+        "id": "dec-srs",
+        "title": "Spaced repetition algorithm?",
+        "options": ["SM-2 (Anki classic)", "FSRS (newer)", "Leitner System", "Custom interval"],
+        "chosen": "SM-2 (Anki classic)",
+        "reasoning": "SM-2 is battle-tested, well-documented, and simple to implement. FSRS is better but more complex to get right. We can always upgrade later. Leitner is too simplistic for serious use."
+      },
+      {
+        "id": "dec-ai",
+        "title": "AI provider for flashcard generation?",
+        "options": ["Groq (free tier, fast)", "OpenAI API", "Local LLM (Ollama)", "Google Gemini API"],
+        "chosen": "Groq (free tier, fast)",
+        "reasoning": "Groq offers free tier with fast inference. Student budget means we need free. OpenAI is expensive. Ollama requires local GPU. Gemini is an option but Groq's speed is unmatched."
+      },
+      {
+        "id": "dec-state",
+        "title": "State management approach?",
+        "options": ["Zustand", "React Context + useReducer", "Jotai", "TanStack Query only"],
+        "chosen": "Zustand",
+        "reasoning": "Zustand is minimal, fast, and perfect for client state. TanStack Query handles server state. No need for Redux complexity or Context prop drilling."
+      }
+    ]
+  },
+  "canvas": {
+    "nodes": [],
+    "edges": [],
+    "viewport": { "x": 0, "y": 0, "zoom": 1 }
+  },
+  "versions": [],
+  "createdAt": "2026-02-15T10:00:00.000Z",
+  "updatedAt": "2026-02-28T14:30:00.000Z"
+}
