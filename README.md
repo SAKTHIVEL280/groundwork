@@ -94,11 +94,11 @@ groundwork/
 ## Deployment (Vercel)
 
 1. Connect your GitHub repo to [Vercel](https://vercel.com)
-2. **Framework Preset**: Vite
-3. **Root Directory**: `apps/web`
-4. **Build Command**: `cd ../.. && npm run build:web`
-5. **Output Directory**: `dist`
-6. Add your custom domain (e.g., `groundwork.daeq.in`)
+2. **Root Directory**: leave empty (repo root) — `vercel.json` handles the rest
+3. Add environment variables:
+   - `VITE_SUPABASE_URL`
+   - `VITE_SUPABASE_ANON_KEY`
+4. Deploy — add your custom domain (e.g., `groundwork.daeq.in`)
 
 ## Environment
 
