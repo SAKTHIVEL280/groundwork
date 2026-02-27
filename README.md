@@ -26,7 +26,7 @@ Groundwork helps you think through your project **before** writing a single line
 
 ```bash
 # Clone
-git clone https://github.com/sakthi-daeq/groundwork.git
+git clone https://github.com/SAKTHIVEL280/groundwork.git
 cd groundwork
 
 # Install dependencies
