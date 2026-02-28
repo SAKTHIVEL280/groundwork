@@ -9,19 +9,16 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo run dev",
-    "dev:web": "turbo run dev --filter=@groundwork/web",
-    "build": "turbo run build",
-    "build:web": "turbo run build --filter=@groundwork/web",
-    "lint": "turbo run lint",
-    "test": "turbo run test",
-    "typecheck": "turbo run typecheck",
+    "dev": "npm run dev -w @groundwork/web",
+    "dev:web": "npm run dev -w @groundwork/web",
+    "build": "npm run build -w @groundwork/web",
+    "build:web": "npm run build -w @groundwork/web",
+    "typecheck": "npm run typecheck -w @groundwork/web",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,json,md}\"",
-    "clean": "turbo run clean && rimraf node_modules"
+    "clean": "rimraf node_modules apps/web/dist apps/web/node_modules packages/*/node_modules"
   },
   "devDependencies": {
-    "turbo": "^2.4.0",
     "prettier": "^3.4.0",
     "rimraf": "^6.0.0",
     "typescript": "^5.7.0"
