@@ -215,21 +215,11 @@ export function Layout() {
               <MenuIcon />
             </IconButton>
             <Box
-              sx={{
-                width: 28,
-                height: 28,
-                borderRadius: '8px',
-                background: `linear-gradient(135deg, ${theme.palette.primary.main}, ${theme.palette.primary.dark})`,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: theme.palette.primary.contrastText,
-                fontWeight: 800,
-                fontSize: '0.8rem',
-              }}
-            >
-              G
-            </Box>
+              component="img"
+              src="/favicon.svg"
+              alt=""
+              sx={{ width: 28, height: 28, borderRadius: '6px' }}
+            />
             <Typography variant="h6" sx={{ fontWeight: 700 }}>
               Groundwork
             </Typography>

@@ -177,11 +177,13 @@ export function SettingsPage() {
             onChange={handleThemeChange}
             sx={{
               mb: 3,
+              flexWrap: 'wrap',
+              gap: 1,
               '& .MuiToggleButton-root': {
                 px: 2.5,
                 py: 1,
                 borderRadius: '10px !important',
-                mx: 0.5,
+                mx: 0,
                 border: '1.5px solid',
                 borderColor: 'divider',
                 '&.Mui-selected': {
