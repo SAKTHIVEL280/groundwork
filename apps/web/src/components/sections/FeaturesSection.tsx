@@ -2,13 +2,15 @@
 // Groundwork - Features Section Component
 // ============================================
 
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import {
+  Alert,
   alpha,
   Box,
   Button,
   Card,
   Chip,
+  Collapse,
   Divider,
   IconButton,
   Stack,
@@ -20,11 +22,16 @@ import {
 import AddIcon from '@mui/icons-material/Add';
 import DeleteIcon from '@mui/icons-material/Delete';
 import ExtensionIcon from '@mui/icons-material/Extension';
+import StarIcon from '@mui/icons-material/Star';
+import ScheduleIcon from '@mui/icons-material/Schedule';
+import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutline';
 import { createFeature } from '@groundwork/logic';
 import type { Feature, Priority, Effort, Project } from '@groundwork/types';
 import { useAI } from '../../hooks/useAI';
 import { AIAssistButton } from '../AIAssistButton';
+import { MarkdownContent } from '../MarkdownContent';
 import { useAppStore } from '../../store';
+import { DebouncedTextField } from '../DebouncedTextField';
 
 interface Props {
   project: Project;
@@ -43,15 +50,19 @@ const EFFORT_LABELS: Record<Effort, string> = {
   large: 'L',
 };
 
-export function FeaturesSection({ project, onUpdate }: Props) {
+export const FeaturesSection = memo(function FeaturesSection({ project, onUpdate }: Props) {
   const theme = useTheme();
   const { features } = project.sections;
   const [newFeatureName, setNewFeatureName] = useState('');
+  const [parseError, setParseError] = useState<string | null>(null);
   const ai = useAI();
 
   const updateFeatures = (updated: Feature[]) => {
+    // Read latest sections from store to prevent stale closure overwrites
+    const latestProject = useAppStore.getState().projects.find(p => p.id === project.id);
+    const currentSections = latestProject?.sections ?? project.sections;
     onUpdate(project.id, {
-      sections: { ...project.sections, features: updated },
+      sections: { ...currentSections, features: updated },
     });
   };
 
@@ -67,7 +78,8 @@ export function FeaturesSection({ project, onUpdate }: Props) {
     const result = await ai.suggestFeatures(desc);
     if (!result) return;
     try {
-      const parsed = JSON.parse(result);
+      const cleaned = result.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+      const parsed = JSON.parse(cleaned);
       if (Array.isArray(parsed)) {
         const newFeatures = parsed.map((f: { name: string; description?: string }) =>
           createFeature(f.name, f.description || ''),
@@ -78,7 +90,8 @@ export function FeaturesSection({ project, onUpdate }: Props) {
         updateFeatures([...currentFeatures, ...newFeatures]);
       }
     } catch {
-      // If parse fails, ignore
+      // JSON parse failed — show raw AI text as fallback
+      setParseError(result);
     }
   };
 
@@ -110,21 +123,30 @@ export function FeaturesSection({ project, onUpdate }: Props) {
     <Card key={feature.id} sx={{ mb: 1.5 }}>
       <Box sx={{ px: 2.5, py: 2, display: 'flex', alignItems: 'center', gap: 1.5 }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <TextField
+          <DebouncedTextField
             value={feature.name}
-            onChange={(e) => updateFeature(feature.id, { name: e.target.value })}
+            onChange={(value) => updateFeature(feature.id, { name: value })}
             variant="standard"
             placeholder="Feature name"
             InputProps={{ disableUnderline: true, sx: { fontWeight: 600, fontSize: '0.95rem' } }}
             fullWidth
             size="small"
           />
-          <TextField
+          <DebouncedTextField
             value={feature.description}
-            onChange={(e) => updateFeature(feature.id, { description: e.target.value })}
+            onChange={(value) => updateFeature(feature.id, { description: value })}
             variant="standard"
             placeholder="Brief description..."
             InputProps={{ disableUnderline: true, sx: { fontSize: '0.825rem', color: 'text.secondary' } }}
+            fullWidth
+            size="small"
+          />
+          <DebouncedTextField
+            value={feature.notes || ''}
+            onChange={(value) => updateFeature(feature.id, { notes: value })}
+            variant="standard"
+            placeholder="Notes..."
+            InputProps={{ disableUnderline: true, sx: { fontSize: '0.775rem', color: 'text.secondary', fontStyle: 'italic' } }}
             fullWidth
             size="small"
           />
@@ -132,6 +154,7 @@ export function FeaturesSection({ project, onUpdate }: Props) {
         <Stack direction="row" spacing={1} alignItems="center">
           <Tooltip title="Click to cycle priority">
             <Chip
+              icon={feature.priority === 'mvp' ? <StarIcon /> : feature.priority === 'later' ? <ScheduleIcon /> : <RemoveCircleOutlineIcon />}
               label={feature.priority.toUpperCase()}
               color={PRIORITY_COLORS[feature.priority]}
               size="small"
@@ -152,6 +175,7 @@ export function FeaturesSection({ project, onUpdate }: Props) {
             size="small"
             onClick={() => removeFeature(feature.id)}
             sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}
+            aria-label={`Delete feature ${feature.name}`}
           >
             <DeleteIcon fontSize="small" />
           </IconButton>
@@ -230,10 +254,16 @@ export function FeaturesSection({ project, onUpdate }: Props) {
         label="AI Suggest Features"
         loading={ai.loading}
         error={ai.error}
-        isAvailable={ai.isAvailable}
         onGenerate={handleAISuggest}
         onClearError={ai.clearError}
       />
+
+      <Collapse in={!!parseError}>
+        <Alert severity="info" onClose={() => setParseError(null)} sx={{ mt: 1, mb: 2, borderRadius: 2 }}>
+          <Typography variant="subtitle2" sx={{ mb: 0.5 }}>AI Suggestion</Typography>
+          <MarkdownContent content={parseError ?? ''} />
+        </Alert>
+      </Collapse>
 
       {features.length > 0 && <Divider sx={{ mb: 3, mt: 2 }} />}
 
@@ -243,12 +273,10 @@ export function FeaturesSection({ project, onUpdate }: Props) {
       {renderGroup('Cut', cutFeatures, theme.palette.text.secondary)}
 
       {features.length === 0 && (
-        <Card sx={{ p: 5, textAlign: 'center' }}>
-          <Typography color="text.secondary">
-            No features yet. Start adding what you want to build.
-          </Typography>
-        </Card>
+        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+          No features yet. Start adding what you want to build.
+        </Typography>
       )}
     </Box>
   );
-}
+});

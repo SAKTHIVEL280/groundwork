@@ -2,14 +2,17 @@
 // Groundwork - Milestones Section Component
 // ============================================
 
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import {
+  Alert,
   alpha,
   Box,
   Button,
   Card,
   Checkbox,
   Chip,
+  CircularProgress,
+  Collapse,
   Divider,
   IconButton,
   Stack,
@@ -19,10 +22,15 @@ import {
   useTheme,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import DeleteIcon from '@mui/icons-material/Delete';
 import FlagIcon from '@mui/icons-material/Flag';
 import { createMilestone, createTask } from '@groundwork/logic';
 import type { Milestone, MilestoneStatus, Project } from '@groundwork/types';
+import { useAI } from '../../hooks/useAI';
+import { MarkdownContent } from '../MarkdownContent';
+import { useAppStore } from '../../store';
+import { DebouncedTextField } from '../DebouncedTextField';
 
 interface Props {
   project: Project;
@@ -35,15 +43,20 @@ const STATUS_COLORS: Record<MilestoneStatus, 'default' | 'warning' | 'success'> 
   completed: 'success',
 };
 
-export function MilestonesSection({ project, onUpdate }: Props) {
+export const MilestonesSection = memo(function MilestonesSection({ project, onUpdate }: Props) {
   const theme = useTheme();
+  const ai = useAI();
   const { milestones } = project.sections;
   const [newMilestoneName, setNewMilestoneName] = useState('');
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const [newTaskInputs, setNewTaskInputs] = useState<Record<string, string>>({});
 
   const updateMilestones = (updated: Milestone[]) => {
+    // Read latest sections from store to prevent stale closure overwrites
+    const latestProject = useAppStore.getState().projects.find(p => p.id === project.id);
+    const currentSections = latestProject?.sections ?? project.sections;
     onUpdate(project.id, {
-      sections: { ...project.sections, milestones: updated },
+      sections: { ...currentSections, milestones: updated },
     });
   };
 
@@ -100,6 +113,36 @@ export function MilestonesSection({ project, onUpdate }: Props) {
     );
   };
 
+  const handleSuggestMilestones = async () => {
+    const featureNames = project.sections.features.map(f => f.name);
+    if (featureNames.length === 0) {
+      setAiSuggestion('Add some features first so AI can suggest milestones.');
+      return;
+    }
+    const result = await ai.suggestMilestones(featureNames);
+    if (!result) return;
+    try {
+      const cleaned = result.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+      const parsed = JSON.parse(cleaned);
+      if (Array.isArray(parsed)) {
+        const newMilestones = parsed.map((m: { name: string; tasks?: string[] }) => {
+          const milestone = createMilestone(m.name);
+          if (Array.isArray(m.tasks)) {
+            milestone.tasks = m.tasks.map((t: string) => createTask(t));
+          }
+          return milestone;
+        });
+        const currentProject = useAppStore.getState().projects.find((p) => p.id === project.id);
+        const currentMilestones = currentProject?.sections.milestones ?? milestones;
+        updateMilestones([...currentMilestones, ...newMilestones]);
+        return;
+      }
+    } catch {
+      // JSON parse failed — show raw text
+    }
+    setAiSuggestion(result);
+  };
+
   return (
     <Box>
       {/* Section Header */}
@@ -120,11 +163,39 @@ export function MilestonesSection({ project, onUpdate }: Props) {
         <Typography variant="h5" fontWeight={600}>
           Milestones
         </Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={ai.loading ? <CircularProgress size={14} /> : <AutoAwesomeIcon />}
+          onClick={handleSuggestMilestones}
+          disabled={ai.loading}
+          sx={{ ml: 'auto' }}
+        >
+          Suggest with AI
+        </Button>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3, pl: 0.5, maxWidth: 600 }}>
         Break your project into week-sized milestones. Milestone 1 should be something deployable
         and usable, even if ugly.
       </Typography>
+
+      <Collapse in={!!aiSuggestion || !!ai.error}>
+        {ai.error && (
+          <Alert severity="error" onClose={ai.clearError} sx={{ mb: 2, borderRadius: 2 }}>
+            {ai.error}
+          </Alert>
+        )}
+        {aiSuggestion && (
+          <Alert
+            severity="info"
+            onClose={() => setAiSuggestion(null)}
+            sx={{ mb: 2, borderRadius: 2 }}
+          >
+            <Typography variant="subtitle2" sx={{ mb: 0.5 }}>AI Suggestion</Typography>
+            <MarkdownContent content={aiSuggestion} />
+          </Alert>
+        )}
+      </Collapse>
 
       {/* Add Milestone */}
       <Stack direction="row" spacing={1.5} sx={{ mb: 3 }}>
@@ -174,13 +245,13 @@ export function MilestonesSection({ project, onUpdate }: Props) {
                 >
                   {idx + 1}
                 </Box>
-                <TextField
+                <DebouncedTextField
                   variant="standard"
                   value={milestone.name}
-                  onChange={(e) =>
+                  onChange={(value) =>
                     updateMilestones(
                       milestones.map((m) =>
-                        m.id === milestone.id ? { ...m, name: e.target.value } : m,
+                        m.id === milestone.id ? { ...m, name: value } : m,
                       ),
                     )
                   }
@@ -211,12 +282,50 @@ export function MilestonesSection({ project, onUpdate }: Props) {
                 </Tooltip>
                 <IconButton
                   size="small"
+                  aria-label={`Delete milestone ${milestone.name}`}
                   onClick={() => removeMilestone(milestone.id)}
                   sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}
                 >
                   <DeleteIcon fontSize="small" />
                 </IconButton>
               </Box>
+
+              {/* Description & Target Date */}
+              <Stack direction="row" spacing={2} sx={{ mb: 1.5, ml: 0.5 }}>
+                <DebouncedTextField
+                  value={milestone.description || ''}
+                  onChange={(value) =>
+                    updateMilestones(
+                      milestones.map((m) =>
+                        m.id === milestone.id ? { ...m, description: value } : m,
+                      ),
+                    )
+                  }
+                  placeholder="Milestone description..."
+                  variant="standard"
+                  size="small"
+                  multiline
+                  rows={1}
+                  fullWidth
+                  InputProps={{ disableUnderline: true, sx: { fontSize: '0.85rem', color: 'text.secondary' } }}
+                />
+                <TextField
+                  type="date"
+                  value={milestone.targetDate || ''}
+                  onChange={(e) =>
+                    updateMilestones(
+                      milestones.map((m) =>
+                        m.id === milestone.id ? { ...m, targetDate: e.target.value } : m,
+                      ),
+                    )
+                  }
+                  label="Target Date"
+                  variant="standard"
+                  size="small"
+                  InputLabelProps={{ shrink: true }}
+                  sx={{ minWidth: 150, flexShrink: 0 }}
+                />
+              </Stack>
 
               {milestone.tasks.length > 0 && <Divider sx={{ mb: 1.5 }} />}
 
@@ -252,6 +361,7 @@ export function MilestonesSection({ project, onUpdate }: Props) {
                     </Typography>
                     <IconButton
                       size="small"
+                      aria-label={`Delete task ${task.title}`}
                       onClick={() => removeTask(milestone.id, task.id)}
                       sx={{ opacity: 0.4, '&:hover': { opacity: 1, color: 'error.main' } }}
                     >
@@ -276,6 +386,7 @@ export function MilestonesSection({ project, onUpdate }: Props) {
                 />
                 <Button
                   size="small"
+                  variant="outlined"
                   onClick={() => addTask(milestone.id)}
                   disabled={!newTaskInputs[milestone.id]?.trim()}
                 >
@@ -288,12 +399,10 @@ export function MilestonesSection({ project, onUpdate }: Props) {
       </Stack>
 
       {milestones.length === 0 && (
-        <Card sx={{ p: 5, textAlign: 'center' }}>
-          <Typography color="text.secondary">
-            No milestones yet. Break your project into phases.
-          </Typography>
-        </Card>
+        <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', py: 4 }}>
+          No milestones yet. Break your project into phases.
+        </Typography>
       )}
     </Box>
   );
-}
+});

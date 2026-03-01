@@ -5,9 +5,10 @@
 // ============================================
 
 import { createTheme, type ThemeOptions, type PaletteOptions } from '@mui/material/styles';
+import type { ColorScheme } from '@groundwork/types';
 
-// --- Color Scheme Definitions ---
-export type ColorScheme = 'purple' | 'blue' | 'green' | 'orange' | 'pink' | 'teal';
+// Re-export for backwards compatibility
+export type { ColorScheme } from '@groundwork/types';
 
 export const COLOR_SCHEME_LABELS: Record<ColorScheme, string> = {
   purple: 'Purple',

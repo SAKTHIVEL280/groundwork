@@ -16,9 +16,10 @@ export interface Timestamps {
 // --- User Preferences ---
 export interface UserPreferences {
   theme: 'light' | 'dark' | 'system';
-  groqApiKey?: string; // encrypted, stored locally
+  colorScheme: ColorScheme;
+  groqApiKey?: string; // stored locally
   aiEnabled: boolean; // default: false
-  defaultTemplateId?: ID;
+  aiModel?: string; // Groq model name override
 }
 
 // --- Priority & Effort ---
@@ -35,6 +36,8 @@ export interface Project extends Timestamps {
   color?: string;
   templateId?: ID;
   progress: number; // 0 - 100, auto-calculated
+  archived?: boolean; // soft-archive flag
+  favorite?: boolean; // pin to top of project list
   disabledSections?: (keyof ProjectSections)[]; // sections the user chose to hide
   sections: ProjectSections;
   canvas: CanvasState;
@@ -179,33 +182,9 @@ export interface Decision {
 }
 
 // --- Canvas ---
-export interface CanvasNode {
-  id: ID;
-  type: 'sticky' | 'text' | 'section' | 'image';
-  position: { x: number; y: number };
-  size: { width: number; height: number };
-  content: string;
-  color?: string;
-  sectionRef?: keyof ProjectSections; // links node to a section
-}
-
-export interface CanvasEdge {
-  id: ID;
-  from: ID;
-  to: ID;
-  label?: string;
-}
-
-export interface CanvasViewport {
-  x: number;
-  y: number;
-  zoom: number;
-}
-
+// Note: CanvasState uses the Excalidraw library 'snapshot' for visual canvas data.
+// The nodes/edges/viewport fields are reserved for future structured canvas features.
 export interface CanvasState {
-  nodes: CanvasNode[];
-  edges: CanvasEdge[];
-  viewport: CanvasViewport;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   snapshot?: any; // Excalidraw scene snapshot (opaque JSON)
 }
@@ -249,11 +228,6 @@ export interface AIMessage {
   content: string;
 }
 
-export interface AIRequest {
-  messages: AIMessage[];
-  config: AIConfig;
-}
-
 export interface AIResponse {
   content: string;
   error?: string;
@@ -261,11 +235,8 @@ export interface AIResponse {
 }
 
 // --- Export Formats ---
-export type ExportFormat = 'markdown' | 'pdf' | 'json' | 'ai-context' | 'github';
+export type ExportFormat = 'markdown' | 'json' | 'ai-context' | 'prd';
 
-export interface ExportOptions {
-  format: ExportFormat;
-  includeSections: (keyof ProjectSections)[];
-  projectId: ID;
-}
+// --- Color Schemes ---
+export type ColorScheme = 'purple' | 'blue' | 'green' | 'orange' | 'pink' | 'teal';
 

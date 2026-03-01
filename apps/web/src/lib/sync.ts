@@ -88,20 +88,26 @@ export async function deleteRemoteProject(
 /**
  * Merge remote projects with local projects.
  * Strategy: last-write-wins based on updatedAt.
+ * Filters out any projects whose IDs appear in deletedIds (tombstones).
  */
 export function mergeProjects(
   local: Project[],
   remote: Project[],
+  deletedIds: string[] = [],
 ): Project[] {
+  const deletedSet = new Set(deletedIds);
   const merged = new Map<string, Project>();
 
   // Add all local projects
   for (const p of local) {
-    merged.set(p.id, p);
+    if (!deletedSet.has(p.id)) {
+      merged.set(p.id, p);
+    }
   }
 
-  // Merge remote: keep whichever is newer
+  // Merge remote: keep whichever is newer, skip tombstoned
   for (const rp of remote) {
+    if (deletedSet.has(rp.id)) continue;
     const existing = merged.get(rp.id);
     if (!existing || new Date(rp.updatedAt) > new Date(existing.updatedAt)) {
       merged.set(rp.id, rp);

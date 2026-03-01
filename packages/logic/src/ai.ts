@@ -8,7 +8,7 @@
 import type { AIConfig, AIMessage, AIResponse } from '@groundwork/types';
 
 const GROQ_API_URL = 'https://api.groq.com/openai/v1/chat/completions';
-const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
+export const DEFAULT_MODEL = 'llama-3.3-70b-versatile';
 
 export class GroqAPIError extends Error {
   constructor(
@@ -26,6 +26,8 @@ export class GroqAPIError extends Error {
  * Returns true if valid, throws GroqAPIError if not.
  */
 export async function validateApiKey(apiKey: string): Promise<boolean> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
   try {
     const response = await fetch(GROQ_API_URL, {
       method: 'POST',
@@ -38,6 +40,7 @@ export async function validateApiKey(apiKey: string): Promise<boolean> {
         messages: [{ role: 'user', content: 'Hi' }],
         max_tokens: 1,
       }),
+      signal: controller.signal,
     });
 
     if (response.status === 401) {
@@ -59,7 +62,12 @@ export async function validateApiKey(apiKey: string): Promise<boolean> {
     return true;
   } catch (error) {
     if (error instanceof GroqAPIError) throw error;
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new GroqAPIError('Request timed out. Please try again.', 0);
+    }
     throw new GroqAPIError('Failed to connect to Groq API. Check your internet connection.', 0);
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -78,6 +86,8 @@ export async function chat(
     return { content: '', error: 'No API key provided. Add your Groq API key in settings.' };
   }
 
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000);
   try {
     const response = await fetch(GROQ_API_URL, {
       method: 'POST',
@@ -91,6 +101,7 @@ export async function chat(
         temperature: 0.7,
         max_tokens: 2048,
       }),
+      signal: controller.signal,
     });
 
     if (response.status === 401) {
@@ -120,10 +131,15 @@ export async function chat(
 
     return { content };
   } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      return { content: '', error: 'Request timed out. Please try again.' };
+    }
     return {
       content: '',
       error: 'Failed to connect to Groq API. Check your internet connection.',
     };
+  } finally {
+    clearTimeout(timeoutId);
   }
 }
 
@@ -152,18 +168,6 @@ export const AI_PROMPTS = {
     {
       role: 'user',
       content: `Suggest a tech stack for:\n\n${projectDescription}\n\nKey features: ${features.join(', ')}`,
-    },
-  ],
-
-  generateDataModel: (features: string[]): AIMessage[] => [
-    {
-      role: 'system',
-      content:
-        'You are a database architect. Generate a data model with entities, fields (name, type, required), and relationships based on the described features. Format clearly.',
-    },
-    {
-      role: 'user',
-      content: `Generate a data model for an app with these features:\n\n${features.map((f) => `- ${f}`).join('\n')}`,
     },
   ],
 

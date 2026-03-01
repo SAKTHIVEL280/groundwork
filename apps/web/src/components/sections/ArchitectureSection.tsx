@@ -2,7 +2,7 @@
 // Groundwork - Architecture Section Component
 // ============================================
 
-import { useState } from 'react';
+import { useState, memo, useMemo } from 'react';
 import {
   alpha,
   Box,
@@ -23,6 +23,9 @@ import AccountTreeIcon from '@mui/icons-material/AccountTree';
 import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 import { v4 as uuid } from 'uuid';
 import type { ArchitectureComponent, ArchitectureConnection, Project } from '@groundwork/types';
+import { useAppStore } from '../../store';
+import { MermaidDiagram } from '../MermaidDiagram';
+import { DebouncedTextField } from '../DebouncedTextField';
 
 interface Props {
   project: Project;
@@ -39,7 +42,7 @@ const TYPE_COLORS: Record<ArchitectureComponent['type'], 'primary' | 'secondary'
   external: 'info',
 };
 
-export function ArchitectureSection({ project, onUpdate }: Props) {
+export const ArchitectureSection = memo(function ArchitectureSection({ project, onUpdate }: Props) {
   const theme = useTheme();
   const { architecture } = project.sections;
   const { components, connections } = architecture;
@@ -49,12 +52,16 @@ export function ArchitectureSection({ project, onUpdate }: Props) {
   const [connFrom, setConnFrom] = useState('');
   const [connTo, setConnTo] = useState('');
   const [connLabel, setConnLabel] = useState('');
+  const [connProtocol, setConnProtocol] = useState('');
 
   const updateArch = (updates: Partial<typeof architecture>) => {
+    // Read latest sections from store to prevent stale closure overwrites
+    const latestProject = useAppStore.getState().projects.find(p => p.id === project.id);
+    const currentSections = latestProject?.sections ?? project.sections;
     onUpdate(project.id, {
       sections: {
-        ...project.sections,
-        architecture: { ...architecture, ...updates },
+        ...currentSections,
+        architecture: { ...currentSections.architecture, ...updates },
       },
     });
   };
@@ -68,6 +75,12 @@ export function ArchitectureSection({ project, onUpdate }: Props) {
     };
     updateArch({ components: [...components, comp] });
     setNewCompName('');
+  };
+
+  const updateComponent = (id: string, updates: Partial<ArchitectureComponent>) => {
+    updateArch({
+      components: components.map((c) => (c.id === id ? { ...c, ...updates } : c)),
+    });
   };
 
   const removeComponent = (id: string) => {
@@ -89,9 +102,11 @@ export function ArchitectureSection({ project, onUpdate }: Props) {
       from: connFrom,
       to: connTo,
       label: connLabel.trim() || undefined,
+      protocol: connProtocol.trim() || undefined,
     };
     updateArch({ connections: [...connections, conn] });
     setConnLabel('');
+    setConnProtocol('');
   };
 
   const removeConnection = (id: string) => {
@@ -99,6 +114,20 @@ export function ArchitectureSection({ project, onUpdate }: Props) {
   };
 
   const getCompName = (id: string) => components.find((c) => c.id === id)?.name || '?';
+
+  const archDiagram = useMemo(() => {
+    if (components.length === 0) return '';
+    const lines = ['graph LR'];
+    for (const c of components) {
+      const shape = c.type === 'database' ? `[(${c.name})]` : c.type === 'external' ? `{{${c.name}}}` : `[${c.name}]`;
+      lines.push(`  ${c.id}${shape}`);
+    }
+    for (const conn of connections) {
+      const label = [conn.label, conn.protocol].filter(Boolean).join(' / ');
+      lines.push(label ? `  ${conn.from} -->|${label}| ${conn.to}` : `  ${conn.from} --> ${conn.to}`);
+    }
+    return lines.join('\n');
+  }, [components, connections]);
 
   return (
     <Box>
@@ -163,11 +192,22 @@ export function ArchitectureSection({ project, onUpdate }: Props) {
               <Typography variant="subtitle2" fontWeight={600}>
                 {comp.name}
               </Typography>
-              <IconButton size="small" onClick={() => removeComponent(comp.id)}>
+              <IconButton size="small" onClick={() => removeComponent(comp.id)} aria-label={`Delete component ${comp.name}`} sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}>
                 <DeleteIcon fontSize="inherit" />
               </IconButton>
             </Box>
             <Chip label={comp.type} size="small" color={TYPE_COLORS[comp.type]} variant="outlined" />
+            <DebouncedTextField
+              value={comp.description || ''}
+              onChange={(value) => updateComponent(comp.id, { description: value })}
+              label="Description"
+              placeholder="What does this component do?"
+              variant="standard"
+              size="small"
+              fullWidth
+              InputProps={{ disableUnderline: true, sx: { fontSize: '0.8rem', color: 'text.secondary' } }}
+              sx={{ mt: 1 }}
+            />
           </Card>
         ))}
         {components.length === 0 && (
@@ -185,7 +225,7 @@ export function ArchitectureSection({ project, onUpdate }: Props) {
             <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
               Add Connection
             </Typography>
-            <Stack direction="row" spacing={1.5} alignItems="center">
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5, alignItems: 'center' }}>
               <TextField
                 size="small"
                 select
@@ -219,10 +259,17 @@ export function ArchitectureSection({ project, onUpdate }: Props) {
                 onKeyDown={(e) => e.key === 'Enter' && addConnection()}
                 sx={{ flex: 1 }}
               />
+              <TextField
+                size="small"
+                placeholder="Protocol"
+                value={connProtocol}
+                onChange={(e) => setConnProtocol(e.target.value)}
+                sx={{ width: 120 }}
+              />
               <Button variant="outlined" onClick={addConnection} sx={{ whiteSpace: 'nowrap' }}>
                 Connect
               </Button>
-            </Stack>
+            </Box>
           </Card>
 
           {/* Connection List */}
@@ -231,7 +278,7 @@ export function ArchitectureSection({ project, onUpdate }: Props) {
               {connections.map((conn) => (
                 <Chip
                   key={conn.id}
-                  label={`${getCompName(conn.from)} → ${getCompName(conn.to)}${conn.label ? ` (${conn.label})` : ''}`}
+                  label={`${getCompName(conn.from)} → ${getCompName(conn.to)}${conn.label ? ` (${conn.label})` : ''}${conn.protocol ? ` [${conn.protocol}]` : ''}`}
                   size="small"
                   onDelete={() => removeConnection(conn.id)}
                   variant="outlined"
@@ -241,6 +288,13 @@ export function ArchitectureSection({ project, onUpdate }: Props) {
           )}
         </>
       )}
+
+      {archDiagram && (
+        <Box sx={{ mt: 3 }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>Architecture Diagram</Typography>
+          <MermaidDiagram chart={archDiagram} />
+        </Box>
+      )}
     </Box>
   );
-}
+});

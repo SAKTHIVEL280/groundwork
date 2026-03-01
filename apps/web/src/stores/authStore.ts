@@ -14,8 +14,6 @@ interface AuthState {
   initialize: () => Promise<void>;
   signInWithGitHub: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  signInWithEmail: (email: string, password: string) => Promise<{ error?: string }>;
-  signUpWithEmail: (email: string, password: string) => Promise<{ error?: string }>;
   signOut: () => Promise<void>;
 }
 
@@ -50,29 +48,25 @@ export const useAuthStore = create<AuthState>()((set) => ({
   },
 
   signInWithGitHub: async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'github',
-      options: { redirectTo: window.location.origin },
-    });
+    try {
+      await supabase.auth.signInWithOAuth({
+        provider: 'github',
+        options: { redirectTo: window.location.origin },
+      });
+    } catch (e) {
+      console.error('GitHub sign-in failed:', e);
+    }
   },
 
   signInWithGoogle: async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: { redirectTo: window.location.origin },
-    });
-  },
-
-  signInWithEmail: async (email, password) => {
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    if (error) return { error: error.message };
-    return {};
-  },
-
-  signUpWithEmail: async (email, password) => {
-    const { error } = await supabase.auth.signUp({ email, password });
-    if (error) return { error: error.message };
-    return {};
+    try {
+      await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: { redirectTo: window.location.origin },
+      });
+    } catch (e) {
+      console.error('Google sign-in failed:', e);
+    }
   },
 
   signOut: async () => {

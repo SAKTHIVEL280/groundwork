@@ -27,11 +27,12 @@ export {
   exportToMarkdown,
   exportToAIContext,
   exportToJSON,
+  exportToPRD,
   exportProject,
 } from './export';
 
 // AI client
-export { validateApiKey, chat, GroqAPIError, AI_PROMPTS } from './ai';
+export { validateApiKey, chat, GroqAPIError, AI_PROMPTS, DEFAULT_MODEL } from './ai';
 
 // Templates
 export { TEMPLATES, getTemplate, getAllTemplates } from './templates';

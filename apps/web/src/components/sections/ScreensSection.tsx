@@ -2,7 +2,7 @@
 // Groundwork - Screens Section Component
 // ============================================
 
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import {
   alpha,
   Box,
@@ -20,20 +20,25 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import DevicesIcon from '@mui/icons-material/Devices';
 import { createScreen } from '@groundwork/logic';
 import type { Screen, Project } from '@groundwork/types';
+import { useAppStore } from '../../store';
+import { DebouncedTextField } from '../DebouncedTextField';
 
 interface Props {
   project: Project;
   onUpdate: (id: string, updates: Partial<Project>) => void;
 }
 
-export function ScreensSection({ project, onUpdate }: Props) {
+export const ScreensSection = memo(function ScreensSection({ project, onUpdate }: Props) {
   const theme = useTheme();
   const { screens } = project.sections;
   const [newName, setNewName] = useState('');
 
   const updateScreens = (updated: Screen[]) => {
+    // Read latest sections from store to prevent stale closure overwrites
+    const latestProject = useAppStore.getState().projects.find(p => p.id === project.id);
+    const currentSections = latestProject?.sections ?? project.sections;
     onUpdate(project.id, {
-      sections: { ...project.sections, screens: updated },
+      sections: { ...currentSections, screens: updated },
     });
   };
 
@@ -96,34 +101,34 @@ export function ScreensSection({ project, onUpdate }: Props) {
           <Card key={screen.id} sx={{ p: 3 }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
               <Stack spacing={1.5} sx={{ flex: 1, mr: 2 }}>
-                <TextField
+                <DebouncedTextField
                   size="small"
                   label="Screen Name"
                   value={screen.name}
-                  onChange={(e) => updateScreen(screen.id, { name: e.target.value })}
+                  onChange={(value) => updateScreen(screen.id, { name: value })}
                   fullWidth
                 />
-                <TextField
+                <DebouncedTextField
                   size="small"
                   label="Description"
                   placeholder="What does this screen do? Key elements?"
                   value={screen.description}
-                  onChange={(e) => updateScreen(screen.id, { description: e.target.value })}
+                  onChange={(value) => updateScreen(screen.id, { description: value })}
                   multiline
                   rows={2}
                   fullWidth
                 />
-                <TextField
+                <DebouncedTextField
                   size="small"
                   label="Section / Flow"
                   placeholder="e.g. Onboarding, Main App, Settings"
                   value={screen.section || ''}
-                  onChange={(e) => updateScreen(screen.id, { section: e.target.value })}
+                  onChange={(value) => updateScreen(screen.id, { section: value })}
                   fullWidth
                 />
               </Stack>
               <Tooltip title="Remove screen">
-                <IconButton size="small" onClick={() => removeScreen(screen.id)} color="error">
+                <IconButton size="small" aria-label={`Remove screen ${screen.name}`} onClick={() => removeScreen(screen.id)} color="error">
                   <DeleteIcon fontSize="small" />
                 </IconButton>
               </Tooltip>
@@ -138,4 +143,4 @@ export function ScreensSection({ project, onUpdate }: Props) {
       </Stack>
     </Box>
   );
-}
+});

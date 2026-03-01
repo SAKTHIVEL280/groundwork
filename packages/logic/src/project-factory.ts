@@ -43,11 +43,7 @@ export function createEmptySections(): ProjectSections {
 }
 
 export function createEmptyCanvas(): CanvasState {
-  return {
-    nodes: [],
-    edges: [],
-    viewport: { x: 0, y: 0, zoom: 1 },
-  };
+  return {};
 }
 
 // --- Factory Functions ---

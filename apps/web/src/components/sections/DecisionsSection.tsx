@@ -2,13 +2,16 @@
 // Groundwork - Decisions Section Component
 // ============================================
 
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import {
+  Alert,
   alpha,
   Box,
   Button,
   Card,
   Chip,
+  CircularProgress,
+  Collapse,
   Divider,
   IconButton,
   Stack,
@@ -18,25 +21,35 @@ import {
   useTheme,
 } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import DeleteIcon from '@mui/icons-material/Delete';
 import GavelIcon from '@mui/icons-material/Gavel';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import { createDecision } from '@groundwork/logic';
 import type { Decision, Project } from '@groundwork/types';
+import { useAI } from '../../hooks/useAI';
+import { MarkdownContent } from '../MarkdownContent';
+import { useAppStore } from '../../store';
+import { DebouncedTextField } from '../DebouncedTextField';
 
 interface Props {
   project: Project;
   onUpdate: (id: string, updates: Partial<Project>) => void;
 }
 
-export function DecisionsSection({ project, onUpdate }: Props) {
+export const DecisionsSection = memo(function DecisionsSection({ project, onUpdate }: Props) {
   const theme = useTheme();
+  const ai = useAI();
+  const [aiSuggestion, setAiSuggestion] = useState<string | null>(null);
   const { decisions } = project.sections;
   const [newTitle, setNewTitle] = useState('');
 
   const updateDecisions = (updated: Decision[]) => {
+    // Read latest sections from store to prevent stale closure overwrites
+    const latestProject = useAppStore.getState().projects.find(p => p.id === project.id);
+    const currentSections = latestProject?.sections ?? project.sections;
     onUpdate(project.id, {
-      sections: { ...project.sections, decisions: updated },
+      sections: { ...currentSections, decisions: updated },
     });
   };
 
@@ -52,6 +65,24 @@ export function DecisionsSection({ project, onUpdate }: Props) {
 
   const updateDecision = (id: string, updates: Partial<Decision>) => {
     updateDecisions(decisions.map((d) => (d.id === id ? { ...d, ...updates } : d)));
+  };
+
+  const handleSuggestDecisions = async () => {
+    const stackInfo = project.sections.stack;
+    const context = [
+      project.description,
+      stackInfo.frontend && `Frontend: ${stackInfo.frontend}`,
+      stackInfo.backend && `Backend: ${stackInfo.backend}`,
+      stackInfo.database && `Database: ${stackInfo.database}`,
+      stackInfo.hosting && `Hosting: ${stackInfo.hosting}`,
+      stackInfo.auth && `Auth: ${stackInfo.auth}`,
+    ].filter(Boolean).join('\n');
+
+    const result = await ai.freeformAsk(
+      `What key technical decisions should I make for this project?\n\n${context}`,
+      'You are a senior tech lead. Suggest 3-5 important technical decisions a developer should make for the described project. For each, list the decision topic and 2-3 options to consider. Be concise.',
+    );
+    if (result) setAiSuggestion(result);
   };
 
   return (
@@ -73,11 +104,39 @@ export function DecisionsSection({ project, onUpdate }: Props) {
         <Typography variant="h5" fontWeight={600}>
           Decisions Log
         </Typography>
+        <Button
+          size="small"
+          variant="outlined"
+          startIcon={ai.loading ? <CircularProgress size={14} /> : <AutoAwesomeIcon />}
+          onClick={handleSuggestDecisions}
+          disabled={ai.loading}
+          sx={{ ml: 'auto' }}
+        >
+          Suggest with AI
+        </Button>
       </Box>
       <Typography variant="body2" color="text.secondary" sx={{ mb: 3, pl: 0.5, maxWidth: 600 }}>
         Track key decisions and their reasoning. Future-you will thank you for documenting why you
         chose one approach over another.
       </Typography>
+
+      <Collapse in={!!aiSuggestion || !!ai.error}>
+        {ai.error && (
+          <Alert severity="error" onClose={ai.clearError} sx={{ mb: 2, borderRadius: 2 }}>
+            {ai.error}
+          </Alert>
+        )}
+        {aiSuggestion && (
+          <Alert
+            severity="info"
+            onClose={() => setAiSuggestion(null)}
+            sx={{ mb: 2, borderRadius: 2 }}
+          >
+            <Typography variant="subtitle2" sx={{ mb: 0.5 }}>AI Suggestion</Typography>
+            <MarkdownContent content={aiSuggestion} />
+          </Alert>
+        )}
+      </Collapse>
 
       <Card sx={{ p: 2.5, mb: 2 }}>
         <Stack direction="row" spacing={1.5}>
@@ -112,9 +171,9 @@ export function DecisionsSection({ project, onUpdate }: Props) {
       </Stack>
     </Box>
   );
-}
+});
 
-function DecisionCard({
+const DecisionCard = memo(function DecisionCard({
   decision,
   onUpdate,
   onRemove,
@@ -149,15 +208,15 @@ function DecisionCard({
   return (
     <Card sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-        <TextField
+        <DebouncedTextField
           size="small"
           label="Decision"
           value={decision.title}
-          onChange={(e) => onUpdate({ title: e.target.value })}
+          onChange={(value) => onUpdate({ title: value })}
           sx={{ flex: 1, mr: 2 }}
         />
         <Tooltip title="Remove decision">
-          <IconButton size="small" onClick={onRemove} color="error">
+          <IconButton size="small" aria-label={`Remove decision ${decision.title}`} onClick={onRemove} color="error">
             <DeleteIcon fontSize="small" />
           </IconButton>
         </Tooltip>
@@ -204,12 +263,12 @@ function DecisionCard({
       <Divider sx={{ my: 2 }} />
 
       {/* Reasoning */}
-      <TextField
+      <DebouncedTextField
         size="small"
         label="Reasoning"
         placeholder="Why did you choose this option? What tradeoffs?"
         value={decision.reasoning || ''}
-        onChange={(e) => onUpdate({ reasoning: e.target.value })}
+        onChange={(value) => onUpdate({ reasoning: value })}
         multiline
         rows={2}
         fullWidth
@@ -220,4 +279,4 @@ function DecisionCard({
       </Typography>
     </Card>
   );
-}
+});

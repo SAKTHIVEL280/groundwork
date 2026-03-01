@@ -21,6 +21,7 @@ import '@excalidraw/excalidraw/index.css';
 import type { ExcalidrawElement } from '@excalidraw/excalidraw/element/types';
 import type { AppState, BinaryFiles } from '@excalidraw/excalidraw/types';
 import { useAppStore } from '../store';
+import { DRAWER_WIDTH } from '../components/Layout';
 
 export function CanvasPage() {
   const { id } = useParams<{ id: string }>();
@@ -59,7 +60,11 @@ export function CanvasPage() {
         updateRef.current(p.id, {
           canvas: {
             ...p.canvas,
-            snapshot: { elements, appState: { viewBackgroundColor: appState.viewBackgroundColor }, files: _files },
+            snapshot: {
+              elements,
+              appState: { viewBackgroundColor: appState.viewBackgroundColor },
+              // Omit binary files to prevent localStorage quota overflow
+            },
           },
         });
       }, 500);
@@ -85,7 +90,7 @@ export function CanvasPage() {
       sx={{
         position: 'fixed',
         top: 0,
-        left: { xs: 0, md: '272px' },
+        left: { xs: 0, md: `${DRAWER_WIDTH}px` },
         right: 0,
         bottom: 0,
         display: 'flex',

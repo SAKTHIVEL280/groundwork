@@ -14,8 +14,9 @@ Groundwork helps you think through your project **before** writing a single line
 - **Visual Canvas** — Freeform Excalidraw canvas for sketching ideas alongside structured planning
 - **Templates** — Start from SaaS, Mobile App, CLI Tool, API, Portfolio, or Library templates
 - **AI Assistant** — Optional Groq AI integration (BYOK) for smart suggestions across all sections
+- **ER Diagrams** — Auto-generated entity-relationship diagrams from your data model via Mermaid
 - **Cloud Sync** — Sign in with GitHub/Google to sync projects across devices via Supabase
-- **Export** — Markdown project brief, AI context file (for Copilot/Claude/Cursor), or full JSON
+- **Export** — Markdown project brief, PRD document, AI context file (for Copilot/Claude/Cursor), or full JSON
 - **Import** — Load `.groundwork.json` files to continue planning
 - **PWA** — Install as a desktop app, works offline
 - **6 Color Themes** — Purple, Blue, Green, Orange, Pink, Teal × Light/Dark mode
@@ -36,7 +37,7 @@ npm install
 npm run dev
 ```
 
-Opens at [http://localhost:5173](http://localhost:5173).
+Opens at [http://localhost:3000](http://localhost:3000).
 
 ## Build for Production
 
@@ -70,9 +71,7 @@ groundwork/
 │       ├── ai.ts                   # Groq API client
 │       └── templates.ts            # 7 project templates
 ├── samples/                        # Sample .groundwork.json files
-├── .github/workflows/ci.yml        # GitHub Actions CI
-├── turbo.json                      # Turborepo config
-└── package.json                    # Workspace root
+└── package.json                    # Workspace root (npm workspaces)
 ```
 
 ## Tech Stack
@@ -87,8 +86,7 @@ groundwork/
 | Cloud Sync | Supabase (PostgreSQL + RLS) |
 | AI | Groq API (llama-3.3-70b-versatile) |
 | PWA | vite-plugin-pwa + Workbox |
-| Build | Turborepo monorepo |
-| CI/CD | GitHub Actions |
+| Build | npm workspaces monorepo |
 | Hosting | Vercel |
 
 ## Deployment (Vercel)

@@ -12,6 +12,7 @@ import {
   CircularProgress,
   Divider,
   FormControlLabel,
+  MenuItem,
   Stack,
   Switch,
   TextField,
@@ -26,11 +27,14 @@ import DarkModeIcon from '@mui/icons-material/DarkMode';
 import SettingsBrightnessIcon from '@mui/icons-material/SettingsBrightness';
 import PaletteIcon from '@mui/icons-material/Palette';
 import CheckIcon from '@mui/icons-material/Check';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CloudSyncIcon from '@mui/icons-material/CloudSync';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import GoogleIcon from '@mui/icons-material/Google';
 import LogoutIcon from '@mui/icons-material/Logout';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
+import ScienceIcon from '@mui/icons-material/Science';
 import { validateApiKey, GroqAPIError } from '@groundwork/logic';
 import type { Project } from '@groundwork/types';
 import { useAppStore } from '../store';
@@ -122,6 +126,15 @@ export function SettingsPage() {
           setImportMsg('Invalid project file. Missing required fields.');
           return;
         }
+        // Validate section shape
+        if (typeof data.sections !== 'object' || Array.isArray(data.sections)) {
+          setImportStatus('error');
+          setImportMsg('Invalid project file. Sections must be an object.');
+          return;
+        }
+        if (!data.name || typeof data.name !== 'string') {
+          data.name = 'Imported Project';
+        }
         importProject(data);
         setImportStatus('success');
         setImportMsg(`Imported "${data.name || 'Untitled'}" successfully.`);
@@ -199,14 +212,26 @@ export function SettingsPage() {
           <Typography variant="subtitle2" sx={{ mb: 1.5, color: 'text.secondary' }}>
             Color Theme
           </Typography>
-          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+          <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }} role="radiogroup" aria-label="Color theme">
             {COLOR_SCHEMES.map((scheme) => {
               const isActive = preferences.colorScheme === scheme;
               const previewColor = COLOR_SCHEME_PREVIEW[scheme];
               return (
                 <Tooltip key={scheme} title={COLOR_SCHEME_LABELS[scheme]}>
                   <Box
+                    component="button"
+                    type="button"
+                    role="radio"
+                    aria-checked={isActive}
+                    aria-label={COLOR_SCHEME_LABELS[scheme]}
                     onClick={() => handleColorSchemeChange(scheme)}
+                    onKeyDown={(e: React.KeyboardEvent) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleColorSchemeChange(scheme);
+                      }
+                    }}
+                    tabIndex={0}
                     sx={{
                       width: 48,
                       height: 48,
@@ -221,9 +246,14 @@ export function SettingsPage() {
                       outline: isActive ? `2px solid ${previewColor}` : 'none',
                       outlineOffset: 2,
                       transition: 'all 0.15s ease',
+                      p: 0,
                       '&:hover': {
                         transform: 'scale(1.1)',
                         boxShadow: `0 4px 12px ${alpha(previewColor, 0.4)}`,
+                      },
+                      '&:focus-visible': {
+                        outline: `2px solid ${theme.palette.primary.main}`,
+                        outlineOffset: 3,
                       },
                     }}
                   >
@@ -237,9 +267,12 @@ export function SettingsPage() {
 
         {/* AI Settings */}
         <Card sx={{ p: 3 }}>
-          <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
-            AI Assistant (Optional)
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+            <SmartToyIcon sx={{ color: 'primary.main' }} />
+            <Typography variant="h6" fontWeight={600}>
+              AI Assistant (Optional)
+            </Typography>
+          </Box>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
             Enable AI features by adding your Groq API key. This is completely optional — the app
             works perfectly without it.
@@ -285,6 +318,20 @@ export function SettingsPage() {
                 )}
               </Stack>
 
+              <TextField
+                select
+                label="AI Model"
+                value={preferences.aiModel || 'llama-3.3-70b-versatile'}
+                onChange={(e) => setPreferences({ aiModel: e.target.value })}
+                fullWidth
+                size="small"
+              >
+                <MenuItem value="llama-3.3-70b-versatile">Llama 3.3 70B (Recommended)</MenuItem>
+                <MenuItem value="llama-3.1-8b-instant">Llama 3.1 8B (Faster)</MenuItem>
+                <MenuItem value="mixtral-8x7b-32768">Mixtral 8x7B</MenuItem>
+                <MenuItem value="gemma2-9b-it">Gemma 2 9B</MenuItem>
+              </TextField>
+
               {apiStatus === 'valid' && (
                 <Alert severity="success" sx={{ borderRadius: 2 }}>
                   API key is valid! AI features are ready.
@@ -314,7 +361,7 @@ export function SettingsPage() {
 
         {/* Account & Sync */}
         <Card sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
             <CloudSyncIcon sx={{ color: 'primary.main' }} />
             <Typography variant="h6" fontWeight={600}>
               Account & Sync
@@ -389,7 +436,7 @@ export function SettingsPage() {
 
         {/* Import */}
         <Card sx={{ p: 3 }}>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
             <UploadFileIcon sx={{ color: 'primary.main' }} />
             <Typography variant="h6" fontWeight={600}>
               Import Project
@@ -409,16 +456,64 @@ export function SettingsPage() {
           )}
         </Card>
 
+        {/* Sample Projects (#30) */}
+        <Card sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+            <ScienceIcon sx={{ color: 'primary.main' }} />
+            <Typography variant="h6" fontWeight={600}>
+              Sample Projects
+            </Typography>
+          </Box>
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2.5 }}>
+            Load fully filled-out example projects to explore what a complete project plan looks like.
+          </Typography>
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+            {[
+              { file: 'studybuddy.groundwork.json', label: 'StudyBuddy', desc: 'AI study companion app' },
+              { file: 'fooddash.groundwork.json', label: 'FoodDash', desc: 'Hyperlocal food delivery' },
+              { file: 'devmetrics.groundwork.json', label: 'DevMetrics', desc: 'GitHub analytics dashboard' },
+            ].map((sample) => (
+              <Button
+                key={sample.file}
+                variant="outlined"
+                size="small"
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`/samples/${sample.file}`);
+                    const data = await res.json();
+                    // Give a unique ID so it doesn't replace existing
+                    data.id = `sample-${Date.now()}`;
+                    importProject(data);
+                    setImportStatus('success');
+                    setImportMsg(`Loaded "${sample.label}" sample project.`);
+                  } catch {
+                    setImportStatus('error');
+                    setImportMsg(`Failed to load ${sample.label} sample.`);
+                  }
+                }}
+              >
+                {sample.label}
+              </Button>
+            ))}
+          </Box>
+          {importStatus === 'success' && importMsg.includes('sample') && (
+            <Alert severity="success" sx={{ mt: 2, borderRadius: 2 }}>{importMsg}</Alert>
+          )}
+        </Card>
+
         {/* About */}
         <Card sx={{ p: 3 }}>
-          <Typography variant="h6" sx={{ mb: 1, fontWeight: 600 }}>
-            About Groundwork
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
+            <InfoOutlinedIcon sx={{ color: 'primary.main' }} />
+            <Typography variant="h6" fontWeight={600}>
+              About Groundwork
+            </Typography>
+          </Box>
           <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
             Free, open-source pre-code planning tool for developers. Plan before you build.
           </Typography>
           <Typography variant="caption" color="text.secondary">
-            Version 0.1.0
+            Version {__APP_VERSION__}
           </Typography>
         </Card>
       </Stack>

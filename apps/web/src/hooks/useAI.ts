@@ -6,21 +6,28 @@
 // ============================================
 
 import { useState, useCallback } from 'react';
-import { chat, AI_PROMPTS } from '@groundwork/logic';
+import { chat, AI_PROMPTS, DEFAULT_MODEL } from '@groundwork/logic';
 import type { AIMessage } from '@groundwork/types';
 import { useAppStore } from '../store';
 
 export function useAI() {
-  const preferences = useAppStore((s) => s.preferences);
+  const aiEnabled = useAppStore((s) => s.preferences.aiEnabled);
+  const groqApiKey = useAppStore((s) => s.preferences.groqApiKey);
+  const aiModel = useAppStore((s) => s.preferences.aiModel);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isAvailable = preferences.aiEnabled && !!preferences.groqApiKey;
+  const isAvailable = aiEnabled && !!groqApiKey;
 
   const generate = useCallback(
     async (messages: AIMessage[]): Promise<string | null> => {
-      if (!isAvailable) {
-        setError('AI is not enabled. Add your Groq API key in Settings.');
+      if (!groqApiKey) {
+        setError('Please add your Groq API key in Settings → AI Configuration to use AI features.');
+        return null;
+      }
+
+      if (!aiEnabled) {
+        setError('AI is disabled. Enable it in Settings → AI Configuration.');
         return null;
       }
 
@@ -29,8 +36,8 @@ export function useAI() {
 
       try {
         const result = await chat(messages, {
-          apiKey: preferences.groqApiKey!,
-          model: 'llama-3.3-70b-versatile',
+          apiKey: groqApiKey!,
+          model: aiModel || DEFAULT_MODEL,
           enabled: true,
         });
 
@@ -48,7 +55,14 @@ export function useAI() {
         return null;
       }
     },
-    [isAvailable, preferences.groqApiKey],
+    [aiEnabled, groqApiKey, aiModel],
+  );
+
+  const refineIdea = useCallback(
+    async (idea: string) => {
+      return generate(AI_PROMPTS.refineIdea(idea));
+    },
+    [generate],
   );
 
   const suggestFeatures = useCallback(
@@ -119,6 +133,24 @@ export function useAI() {
     [generate],
   );
 
+  const suggestCompetitors = useCallback(
+    async (projectDescription: string) => {
+      const messages: AIMessage[] = [
+        {
+          role: 'system',
+          content:
+            'You are a market analyst. Suggest 3-5 competitors or alternatives for the described project. Return ONLY a JSON array of objects with "name", "url" (optional), "strengths" (array of strings), and "gaps" (array of strings — weaknesses you can exploit). No markdown, no explanation — just the JSON array.',
+        },
+        {
+          role: 'user',
+          content: `Suggest competitors for: ${projectDescription}`,
+        },
+      ];
+      return generate(messages);
+    },
+    [generate],
+  );
+
   const freeformAsk = useCallback(
     async (prompt: string, systemContext: string) => {
       const messages: AIMessage[] = [
@@ -135,11 +167,13 @@ export function useAI() {
     loading,
     error,
     generate,
+    refineIdea,
     suggestFeatures,
     suggestPersonas,
     suggestStack,
     suggestDataModel,
     suggestMilestones,
+    suggestCompetitors,
     freeformAsk,
     clearError: () => setError(null),
   };

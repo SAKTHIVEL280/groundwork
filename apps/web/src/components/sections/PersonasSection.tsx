@@ -2,13 +2,15 @@
 // Groundwork - Personas Section Component
 // ============================================
 
-import { useState } from 'react';
+import { memo, useState } from 'react';
 import {
+  Alert,
   alpha,
   Box,
   Button,
   Card,
   Chip,
+  Collapse,
   Divider,
   IconButton,
   Stack,
@@ -24,22 +26,28 @@ import { createPersona } from '@groundwork/logic';
 import type { Persona, Project } from '@groundwork/types';
 import { useAI } from '../../hooks/useAI';
 import { AIAssistButton } from '../AIAssistButton';
+import { MarkdownContent } from '../MarkdownContent';
 import { useAppStore } from '../../store';
+import { DebouncedTextField } from '../DebouncedTextField';
 
 interface Props {
   project: Project;
   onUpdate: (id: string, updates: Partial<Project>) => void;
 }
 
-export function PersonasSection({ project, onUpdate }: Props) {
+export const PersonasSection = memo(function PersonasSection({ project, onUpdate }: Props) {
   const theme = useTheme();
   const { personas } = project.sections;
   const [newName, setNewName] = useState('');
+  const [parseError, setParseError] = useState<string | null>(null);
   const ai = useAI();
 
   const updatePersonas = (updated: Persona[]) => {
+    // Read latest sections from store to prevent stale closure overwrites
+    const latestProject = useAppStore.getState().projects.find(p => p.id === project.id);
+    const currentSections = latestProject?.sections ?? project.sections;
     onUpdate(project.id, {
-      sections: { ...project.sections, personas: updated },
+      sections: { ...currentSections, personas: updated },
     });
   };
 
@@ -54,7 +62,8 @@ export function PersonasSection({ project, onUpdate }: Props) {
     const result = await ai.suggestPersonas(desc);
     if (!result) return;
     try {
-      const parsed = JSON.parse(result);
+      const cleaned = result.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+      const parsed = JSON.parse(cleaned);
       if (Array.isArray(parsed)) {
         const newPersonas: Persona[] = parsed.map((p: { name: string; role?: string; painPoints?: string[]; goals?: string[] }) => ({
           ...createPersona(p.name, p.role || ''),
@@ -67,7 +76,8 @@ export function PersonasSection({ project, onUpdate }: Props) {
         updatePersonas([...currentPersonas, ...newPersonas]);
       }
     } catch {
-      // Ignore parse failures
+      // JSON parse failed — show raw AI text as fallback
+      setParseError(result);
     }
   };
 
@@ -138,10 +148,16 @@ export function PersonasSection({ project, onUpdate }: Props) {
         label="AI Suggest Personas"
         loading={ai.loading}
         error={ai.error}
-        isAvailable={ai.isAvailable}
         onGenerate={handleAISuggest}
         onClearError={ai.clearError}
       />
+
+      <Collapse in={!!parseError}>
+        <Alert severity="info" onClose={() => setParseError(null)} sx={{ mt: 1, mb: 2, borderRadius: 2 }}>
+          <Typography variant="subtitle2" sx={{ mb: 0.5 }}>AI Suggestion</Typography>
+          <MarkdownContent content={parseError ?? ''} />
+        </Alert>
+      </Collapse>
 
       {/* Persona Cards */}
       <Stack spacing={2}>
@@ -163,10 +179,10 @@ export function PersonasSection({ project, onUpdate }: Props) {
       </Stack>
     </Box>
   );
-}
+});
 
 // --- Persona Card Sub-component ---
-function PersonaCard({
+const PersonaCard = memo(function PersonaCard({
   persona,
   onUpdate,
   onRemove,
@@ -186,24 +202,24 @@ function PersonaCard({
     <Card sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
         <Stack spacing={1.5} sx={{ flex: 1, mr: 2 }}>
-          <TextField
+          <DebouncedTextField
             size="small"
             label="Name"
             value={persona.name}
-            onChange={(e) => onUpdate({ name: e.target.value })}
+            onChange={(value) => onUpdate({ name: value })}
             fullWidth
           />
-          <TextField
+          <DebouncedTextField
             size="small"
             label="Role / Description"
             placeholder="e.g. Junior developer building side projects"
             value={persona.role}
-            onChange={(e) => onUpdate({ role: e.target.value })}
+            onChange={(value) => onUpdate({ role: value })}
             fullWidth
           />
         </Stack>
         <Tooltip title="Remove persona">
-          <IconButton size="small" onClick={onRemove} color="error">
+          <IconButton size="small" aria-label={`Remove persona ${persona.name}`} onClick={onRemove} color="error">
             <DeleteIcon fontSize="small" />
           </IconButton>
         </Tooltip>
@@ -296,4 +312,4 @@ function PersonaCard({
       </Stack>
     </Card>
   );
-}
+});

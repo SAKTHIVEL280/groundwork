@@ -31,12 +31,12 @@ const SECTION_WEIGHTS: SectionWeight[] = [
   },
   {
     key: 'features',
-    weight: 20,
+    weight: 15,
     isFilled: (s) => s.features.length > 0,
   },
   {
     key: 'dataModel',
-    weight: 15,
+    weight: 10,
     isFilled: (s) => s.dataModel.length > 0,
   },
   {
@@ -88,7 +88,7 @@ export function calculateProgress(sections: ProjectSections): number {
 /**
  * Get a list of sections that are incomplete, for showing hints.
  */
-export function getIncompleteSections(sections: ProjectSections): string[] {
+export function getIncompleteSections(sections: ProjectSections): (keyof ProjectSections)[] {
   return SECTION_WEIGHTS.filter((sw) => !sw.isFilled(sections)).map((sw) => sw.key);
 }
 

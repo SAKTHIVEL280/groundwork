@@ -2,13 +2,15 @@
 // Groundwork - Data Model Section Component
 // ============================================
 
-import { useState } from 'react';
+import { memo, useState, useMemo } from 'react';
 import {
+  Alert,
   alpha,
   Box,
   Button,
   Card,
   Chip,
+  Collapse,
   Divider,
   FormControlLabel,
   IconButton,
@@ -27,7 +29,10 @@ import { createEntity } from '@groundwork/logic';
 import type { Entity, EntityField, EntityRelationship, Project } from '@groundwork/types';
 import { useAI } from '../../hooks/useAI';
 import { AIAssistButton } from '../AIAssistButton';
+import { MarkdownContent } from '../MarkdownContent';
+import { MermaidDiagram } from '../MermaidDiagram';
 import { useAppStore } from '../../store';
+import { DebouncedTextField } from '../DebouncedTextField';
 
 interface Props {
   project: Project;
@@ -37,15 +42,19 @@ interface Props {
 const FIELD_TYPES = ['string', 'number', 'boolean', 'date', 'uuid', 'text', 'json', 'enum', 'file'];
 const REL_TYPES: EntityRelationship['type'][] = ['one-to-one', 'one-to-many', 'many-to-many'];
 
-export function DataModelSection({ project, onUpdate }: Props) {
+export const DataModelSection = memo(function DataModelSection({ project, onUpdate }: Props) {
   const theme = useTheme();
   const { dataModel } = project.sections;
   const [newName, setNewName] = useState('');
+  const [localMessage, setLocalMessage] = useState<string | null>(null);
   const ai = useAI();
 
   const updateEntities = (updated: Entity[]) => {
+    // Read latest sections from store to prevent stale closure overwrites
+    const latestProject = useAppStore.getState().projects.find(p => p.id === project.id);
+    const currentSections = latestProject?.sections ?? project.sections;
     onUpdate(project.id, {
-      sections: { ...project.sections, dataModel: updated },
+      sections: { ...currentSections, dataModel: updated },
     });
   };
 
@@ -58,14 +67,14 @@ export function DataModelSection({ project, onUpdate }: Props) {
   const handleAISuggest = async () => {
     const featureNames = project.sections.features.map((f) => f.name);
     if (featureNames.length === 0) {
-      ai.clearError();
-      // Show a helpful message — the error state is used for display
+      setLocalMessage('Add some features first so AI can generate a data model.');
       return;
     }
     const result = await ai.suggestDataModel(featureNames);
     if (!result) return;
     try {
-      const parsed = JSON.parse(result);
+      const cleaned = result.replace(/^```(?:json)?\s*\n?/i, '').replace(/\n?```\s*$/i, '').trim();
+      const parsed = JSON.parse(cleaned);
       if (Array.isArray(parsed)) {
         const newEntities: Entity[] = parsed.map((e: { name: string; fields?: EntityField[]; relationships?: EntityRelationship[] }) => ({
           ...createEntity(e.name),
@@ -78,7 +87,8 @@ export function DataModelSection({ project, onUpdate }: Props) {
         updateEntities([...currentDataModel, ...newEntities]);
       }
     } catch {
-      // Ignore parse failures
+      // JSON parse failed — show raw AI text as fallback
+      setLocalMessage(result);
     }
   };
 
@@ -89,6 +99,37 @@ export function DataModelSection({ project, onUpdate }: Props) {
   const updateEntity = (id: string, updates: Partial<Entity>) => {
     updateEntities(dataModel.map((e) => (e.id === id ? { ...e, ...updates } : e)));
   };
+
+  // Generate Mermaid ER diagram from entities (memoized)
+  const erDiagram = useMemo(() => {
+    if (dataModel.length === 0) return '';
+    const lines: string[] = ['erDiagram'];
+    for (const entity of dataModel) {
+      const safeName = entity.name.replace(/\s+/g, '_');
+      if (entity.fields.length > 0) {
+        lines.push(`  ${safeName} {`);
+        for (const field of entity.fields) {
+          const safeType = field.type.replace(/\s+/g, '_');
+          const safeFName = field.name.replace(/\s+/g, '_');
+          lines.push(`    ${safeType} ${safeFName}${field.name.toLowerCase() === 'id' ? ' PK' : ''}`);
+        }
+        lines.push('  }');
+      }
+    }
+    // Add relationships
+    for (const entity of dataModel) {
+      const safeName = entity.name.replace(/\s+/g, '_');
+      for (const rel of entity.relationships) {
+        const safeTarget = rel.targetEntity.replace(/\s+/g, '_');
+        const relSymbol =
+          rel.type === 'one-to-one' ? '||--||' :
+          rel.type === 'one-to-many' ? '||--o{' :
+          'o{--o{'; // many-to-many
+        lines.push(`  ${safeName} ${relSymbol} ${safeTarget} : "${rel.type}"`);
+      }
+    }
+    return lines.join('\n');
+  }, [dataModel]);
 
   return (
     <Box>
@@ -134,10 +175,20 @@ export function DataModelSection({ project, onUpdate }: Props) {
         label="AI Generate Data Model"
         loading={ai.loading}
         error={ai.error}
-        isAvailable={ai.isAvailable}
         onGenerate={handleAISuggest}
         onClearError={ai.clearError}
       />
+
+      <Collapse in={!!localMessage}>
+        <Alert
+          severity="info"
+          onClose={() => setLocalMessage(null)}
+          sx={{ mt: 1, mb: 2, borderRadius: 2 }}
+        >
+          <Typography variant="subtitle2" sx={{ mb: 0.5 }}>AI Suggestion</Typography>
+          <MarkdownContent content={localMessage ?? ''} />
+        </Alert>
+      </Collapse>
 
       <Stack spacing={2}>
         {dataModel.map((entity) => (
@@ -155,11 +206,14 @@ export function DataModelSection({ project, onUpdate }: Props) {
           </Typography>
         )}
       </Stack>
+
+      {/* ER Diagram Preview */}
+      {erDiagram && <MermaidDiagram chart={erDiagram} title="Entity Relationship Diagram" />}
     </Box>
   );
-}
+});
 
-function EntityCard({
+const EntityCard = memo(function EntityCard({
   entity,
   allEntities,
   onUpdate,
@@ -173,12 +227,14 @@ function EntityCard({
   const [newFieldName, setNewFieldName] = useState('');
   const [newFieldType, setNewFieldType] = useState('string');
   const [newFieldRequired, setNewFieldRequired] = useState(true);
+  const [newFieldDesc, setNewFieldDesc] = useState('');
 
   const addField = () => {
     if (!newFieldName.trim()) return;
-    const field: EntityField = { name: newFieldName.trim(), type: newFieldType, required: newFieldRequired };
+    const field: EntityField = { name: newFieldName.trim(), type: newFieldType, required: newFieldRequired, description: newFieldDesc.trim() || undefined };
     onUpdate({ fields: [...entity.fields, field] });
     setNewFieldName('');
+    setNewFieldDesc('');
   };
 
   const removeField = (index: number) => {
@@ -199,15 +255,15 @@ function EntityCard({
   return (
     <Card sx={{ p: 3 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <TextField
+        <DebouncedTextField
           size="small"
           label="Entity Name"
           value={entity.name}
-          onChange={(e) => onUpdate({ name: e.target.value })}
+          onChange={(value) => onUpdate({ name: value })}
           sx={{ flex: 1, mr: 2 }}
         />
         <Tooltip title="Remove entity">
-          <IconButton size="small" onClick={onRemove} color="error">
+          <IconButton size="small" aria-label={`Remove entity ${entity.name}`} onClick={onRemove} color="error">
             <DeleteIcon fontSize="small" />
           </IconButton>
         </Tooltip>
@@ -236,22 +292,34 @@ function EntityCard({
               </Typography>
               <Chip label={field.type} size="small" variant="outlined" />
               {field.required && <Chip label="required" size="small" color="primary" variant="outlined" />}
+              {field.description && (
+                <Typography variant="caption" color="text.secondary" sx={{ ml: 0.5 }}>
+                  {field.description}
+                </Typography>
+              )}
               <Box sx={{ flex: 1 }} />
-              <IconButton size="small" onClick={() => removeField(i)}>
+              <IconButton size="small" aria-label={`Remove field ${field.name}`} onClick={() => removeField(i)} sx={{ color: 'text.secondary', '&:hover': { color: 'error.main' } }}>
                 <DeleteIcon fontSize="inherit" />
               </IconButton>
             </Box>
           ))}
         </Box>
       )}
-      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 2 }}>
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center', mb: 2 }}>
         <TextField
           size="small"
           placeholder="Field name"
           value={newFieldName}
           onChange={(e) => setNewFieldName(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && addField()}
-          sx={{ flex: 1 }}
+          sx={{ flex: '1 1 120px', minWidth: 120 }}
+        />
+        <TextField
+          size="small"
+          placeholder="Description"
+          value={newFieldDesc}
+          onChange={(e) => setNewFieldDesc(e.target.value)}
+          sx={{ flex: '1 1 120px', minWidth: 120 }}
         />
         <TextField
           size="small"
@@ -272,7 +340,7 @@ function EntityCard({
         <Button size="small" variant="outlined" onClick={addField}>
           Add
         </Button>
-      </Stack>
+      </Box>
 
       <Divider sx={{ my: 2 }} />
 
@@ -320,4 +388,4 @@ function EntityCard({
       )}
     </Card>
   );
-}
+});

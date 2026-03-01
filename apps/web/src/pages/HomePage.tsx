@@ -2,7 +2,7 @@
 // Groundwork - Home Page
 // ============================================
 
-import { useState } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   alpha,
@@ -16,9 +16,12 @@ import {
   DialogTitle,
   Grid2,
   IconButton,
+  InputAdornment,
   LinearProgress,
+  MenuItem,
   Stack,
   TextField,
+  Tooltip,
   Typography,
   useTheme,
 } from '@mui/material';
@@ -31,9 +34,25 @@ import TerminalIcon from '@mui/icons-material/Terminal';
 import ApiIcon from '@mui/icons-material/Api';
 import PaletteIcon from '@mui/icons-material/Palette';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
+import SearchIcon from '@mui/icons-material/Search';
+import StarIcon from '@mui/icons-material/Star';
+import StarBorderIcon from '@mui/icons-material/StarBorder';
+import ArchiveIcon from '@mui/icons-material/Archive';
+import UnarchiveIcon from '@mui/icons-material/Unarchive';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
 import { getAllTemplates } from '@groundwork/logic';
 import type { Template } from '@groundwork/types';
 import { useAppStore } from '../store';
+
+const TEMPLATE_ICONS: Record<string, React.ReactNode> = {
+  Language: <LanguageIcon sx={{ fontSize: 32, color: 'primary.main' }} />,
+  PhoneIphone: <PhoneIphoneIcon sx={{ fontSize: 32, color: 'primary.main' }} />,
+  Terminal: <TerminalIcon sx={{ fontSize: 32, color: 'primary.main' }} />,
+  Api: <ApiIcon sx={{ fontSize: 32, color: 'primary.main' }} />,
+  Palette: <PaletteIcon sx={{ fontSize: 32, color: 'primary.main' }} />,
+  Inventory2: <Inventory2Icon sx={{ fontSize: 32, color: 'primary.main' }} />,
+};
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -42,22 +61,35 @@ export function HomePage() {
   const createNewProject = useAppStore((s) => s.createNewProject);
   const createFromTemplate = useAppStore((s) => s.createFromTemplate);
   const deleteProject = useAppStore((s) => s.deleteProject);
+  const toggleFavorite = useAppStore((s) => s.toggleFavorite);
+  const toggleArchive = useAppStore((s) => s.toggleArchive);
 
   const [newProjectDialog, setNewProjectDialog] = useState(false);
   const [projectName, setProjectName] = useState('');
   const [projectDesc, setProjectDesc] = useState('');
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [sortBy, setSortBy] = useState<'updated' | 'name' | 'progress'>('updated');
+  const [showArchived, setShowArchived] = useState(false);
 
-  const templates = getAllTemplates();
+  // Template name prompt
+  const [templateDialog, setTemplateDialog] = useState<Template | null>(null);
+  const [templateName, setTemplateName] = useState('');
 
-  const TEMPLATE_ICONS: Record<string, React.ReactNode> = {
-    Language: <LanguageIcon sx={{ fontSize: 32, color: 'primary.main' }} />,
-    PhoneIphone: <PhoneIphoneIcon sx={{ fontSize: 32, color: 'primary.main' }} />,
-    Terminal: <TerminalIcon sx={{ fontSize: 32, color: 'primary.main' }} />,
-    Api: <ApiIcon sx={{ fontSize: 32, color: 'primary.main' }} />,
-    Palette: <PaletteIcon sx={{ fontSize: 32, color: 'primary.main' }} />,
-    Inventory2: <Inventory2Icon sx={{ fontSize: 32, color: 'primary.main' }} />,
-  };
+  const templates = useMemo(() => getAllTemplates(), []);
+
+  // Keyboard shortcut: Ctrl+N to create new project (#25)
+  const openNewDialog = useCallback(() => setNewProjectDialog(true), []);
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+        e.preventDefault();
+        openNewDialog();
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [openNewDialog]);
 
   const handleCreateBlank = () => {
     if (!projectName.trim()) return;
@@ -69,7 +101,18 @@ export function HomePage() {
   };
 
   const handleUseTemplate = (template: Template) => {
-    const id = createFromTemplate(template);
+    setTemplateDialog(template);
+    setTemplateName(template.name);
+  };
+
+  const handleConfirmTemplate = () => {
+    if (!templateDialog) return;
+    const id = createFromTemplate(templateDialog);
+    if (templateName.trim()) {
+      useAppStore.getState().updateProject(id, { name: templateName.trim() });
+    }
+    setTemplateDialog(null);
+    setTemplateName('');
     navigate(`/project/${id}`);
   };
 
@@ -77,6 +120,29 @@ export function HomePage() {
     deleteProject(id);
     setDeleteConfirm(null);
   };
+
+  // Filter and sort projects
+  const filteredProjects = useMemo(() => {
+    let list = projects.filter((p) => showArchived ? p.archived : !p.archived);
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      list = list.filter((p) =>
+        p.name.toLowerCase().includes(q) || p.description.toLowerCase().includes(q),
+      );
+    }
+    // Favorites first, then sort
+    list = [...list].sort((a, b) => {
+      if (a.favorite && !b.favorite) return -1;
+      if (!a.favorite && b.favorite) return 1;
+      switch (sortBy) {
+        case 'name': return a.name.localeCompare(b.name);
+        case 'progress': return b.progress - a.progress;
+        case 'updated':
+        default: return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime();
+      }
+    });
+    return list;
+  }, [projects, searchQuery, sortBy, showArchived]);
 
   return (
     <Box>
@@ -190,24 +256,59 @@ export function HomePage() {
       {/* Existing Projects */}
       {projects.length > 0 && (
         <Box>
-          <Typography variant="h5" sx={{ mb: 2.5, fontWeight: 600 }}>
-            Your Projects
-          </Typography>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2.5, flexWrap: 'wrap' }}>
+            <Typography variant="h5" sx={{ fontWeight: 600 }}>
+              Your Projects
+            </Typography>
+            <TextField
+              size="small"
+              placeholder="Search projects..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon fontSize="small" />
+                  </InputAdornment>
+                ),
+              }}
+              sx={{ width: { xs: '100%', sm: 220 } }}
+            />
+            <TextField
+              size="small"
+              select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as 'updated' | 'name' | 'progress')}
+              sx={{ width: { xs: '100%', sm: 140 } }}
+            >
+              <MenuItem value="updated">Last Updated</MenuItem>
+              <MenuItem value="name">Name</MenuItem>
+              <MenuItem value="progress">Progress</MenuItem>
+            </TextField>
+            <Button
+              variant={showArchived ? 'contained' : 'outlined'}
+              size="small"
+              startIcon={showArchived ? <VisibilityOffIcon /> : <VisibilityIcon />}
+              onClick={() => setShowArchived(!showArchived)}
+              aria-pressed={showArchived}
+            >
+              {showArchived ? 'Showing Archived' : 'Show Archived'}
+            </Button>
+          </Box>
           <Grid2 container spacing={3}>
-            {projects.map((project) => (
+            {filteredProjects.map((project) => (
               <Grid2 size={{ xs: 12, sm: 6, md: 4 }} key={project.id}>
                 <Card
                   sx={{
+                    cursor: 'pointer',
                     '&:hover': {
                       borderColor: 'primary.main',
                       boxShadow: `0 0 0 1px ${theme.palette.primary.main}`,
                     },
                   }}
+                  onClick={() => navigate(`/project/${project.id}`)}
                 >
-                  <CardActionArea
-                    onClick={() => navigate(`/project/${project.id}`)}
-                    sx={{ p: 3 }}
-                  >
+                  <Box sx={{ p: 3 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
                       <Box sx={{ flex: 1, minWidth: 0, mr: 1 }}>
                         <Typography variant="h6" sx={{ mb: 0.5, fontWeight: 600 }} noWrap>
@@ -227,41 +328,60 @@ export function HomePage() {
                           {project.description || 'No description'}
                         </Typography>
                       </Box>
-                      <IconButton
-                        size="small"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                          setDeleteConfirm(project.id);
-                        }}
-                        sx={{
-                          color: 'text.secondary',
-                          '&:hover': { color: 'error.main' },
-                        }}
-                      >
-                        <DeleteIcon fontSize="small" />
-                      </IconButton>
+                      <Stack direction="row" spacing={0} onClick={(e) => e.stopPropagation()}>
+                        <Tooltip title={project.favorite ? 'Unfavorite' : 'Favorite'}>
+                          <IconButton
+                            size="small"
+                            aria-label={project.favorite ? 'Unfavorite' : 'Favorite'}
+                            onClick={() => toggleFavorite(project.id)}
+                            sx={{ color: project.favorite ? 'warning.main' : 'text.secondary' }}
+                          >
+                            {project.favorite ? <StarIcon fontSize="small" /> : <StarBorderIcon fontSize="small" />}
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title={project.archived ? 'Unarchive' : 'Archive'}>
+                          <IconButton
+                            size="small"
+                            aria-label={project.archived ? 'Unarchive' : 'Archive'}
+                            onClick={() => toggleArchive(project.id)}
+                            sx={{ color: 'text.secondary' }}
+                          >
+                            {project.archived ? <UnarchiveIcon fontSize="small" /> : <ArchiveIcon fontSize="small" />}
+                          </IconButton>
+                        </Tooltip>
+                        <IconButton
+                          size="small"
+                          aria-label={`Delete project ${project.name}`}
+                          onClick={() => setDeleteConfirm(project.id)}
+                          sx={{
+                            color: 'text.secondary',
+                            '&:hover': { color: 'error.main' },
+                          }}
+                        >
+                          <DeleteIcon fontSize="small" />
+                        </IconButton>
+                      </Stack>
                     </Box>
                     <Stack spacing={0.75}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Typography variant="caption" color="text.secondary" fontWeight={500}>
                           Progress
                         </Typography>
-                        <Typography variant="caption" color="primary.main" fontWeight={600}>
+                        <Typography variant="caption" color={project.progress >= 70 ? 'success.main' : project.progress >= 30 ? 'warning.main' : 'error.main'} fontWeight={600}>
                           {project.progress}%
                         </Typography>
                       </Box>
                       <LinearProgress
                         variant="determinate"
                         value={project.progress}
+                        color={project.progress >= 70 ? 'success' : project.progress >= 30 ? 'warning' : 'error'}
                         sx={{
                           height: 6,
                           borderRadius: 3,
-                          bgcolor: alpha(theme.palette.primary.main, 0.08),
                         }}
                       />
                     </Stack>
-                  </CardActionArea>
+                  </Box>
                 </Card>
               </Grid2>
             ))}
@@ -332,6 +452,33 @@ export function HomePage() {
             onClick={() => deleteConfirm && handleDelete(deleteConfirm)}
           >
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Template Name Prompt */}
+      <Dialog
+        open={!!templateDialog}
+        onClose={() => setTemplateDialog(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 600 }}>Name Your Project</DialogTitle>
+        <DialogContent>
+          <TextField
+            autoFocus
+            fullWidth
+            label="Project Name"
+            value={templateName}
+            onChange={(e) => setTemplateName(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleConfirmTemplate()}
+            sx={{ mt: 1 }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => setTemplateDialog(null)}>Cancel</Button>
+          <Button variant="contained" onClick={handleConfirmTemplate}>
+            Create
           </Button>
         </DialogActions>
       </Dialog>
