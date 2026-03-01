@@ -54,8 +54,7 @@ export default defineConfig({
     open: true,
   },
   build: {
-    outDir: '../../dist',
-    emptyOutDir: true,
+    outDir: 'dist',
     sourcemap: true,
     rollupOptions: {
       output: {
