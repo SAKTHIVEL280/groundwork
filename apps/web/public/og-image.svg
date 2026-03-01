@@ -1,0 +1,42 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0F0F0F"/>
+  
+  <!-- Subtle grid pattern -->
+  <defs>
+    <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+      <rect width="40" height="40" fill="none"/>
+      <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#1A1A1A" stroke-width="0.5"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#grid)" opacity="0.6"/>
+  
+  <!-- Accent glow -->
+  <ellipse cx="600" cy="315" rx="500" ry="250" fill="#7C3AED" opacity="0.04"/>
+  
+  <!-- Icon (enlarged favicon) -->
+  <g transform="translate(100, 170) scale(4.5)">
+    <rect width="64" height="64" rx="16" fill="#1A1A1A" stroke="#2A2A2A" stroke-width="1"/>
+    <rect x="8" y="8" width="36" height="12" rx="1.5" fill="#FFFFFF"/>
+    <rect x="8" y="24" width="12" height="16" rx="1.5" fill="#FFFFFF"/>
+    <rect x="24" y="24" width="16" height="12" rx="1.5" fill="#FFFFFF"/>
+    <rect x="44" y="24" width="12" height="16" rx="1.5" fill="#FFFFFF"/>
+    <rect x="8" y="44" width="48" height="12" rx="1.5" fill="#FFFFFF"/>
+  </g>
+  
+  <!-- Title -->
+  <text x="520" y="240" fill="#FFFFFF" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="72" font-weight="700" letter-spacing="-2">Groundwork</text>
+  
+  <!-- Tagline -->
+  <text x="520" y="300" fill="#A0A0A0" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="32" font-weight="400">Plan before you build.</text>
+  
+  <!-- Description -->
+  <text x="520" y="370" fill="#666666" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="22" font-weight="400">Free, open-source pre-code planning tool for developers.</text>
+  <text x="520" y="402" fill="#666666" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="22" font-weight="400">10 sections. Visual canvas. AI suggestions. Export anywhere.</text>
+  
+  <!-- URL -->
+  <text x="520" y="470" fill="#7C3AED" font-family="Inter, system-ui, -apple-system, sans-serif" font-size="24" font-weight="600">groundwork.daeq.in</text>
+  
+  <!-- Bottom border accent -->
+  <rect x="0" y="622" width="1200" height="8" fill="#7C3AED"/>
+</svg>
