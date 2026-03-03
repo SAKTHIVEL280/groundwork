@@ -30,6 +30,7 @@ import CheckIcon from '@mui/icons-material/Check';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import CloudSyncIcon from '@mui/icons-material/CloudSync';
+import BackupIcon from '@mui/icons-material/Backup';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import GoogleIcon from '@mui/icons-material/Google';
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -54,6 +55,10 @@ export function SettingsPage() {
   const importProject = useAppStore((s) => s.importProject);
   const syncStatus = useAppStore((s) => s.syncStatus);
   const syncWithCloud = useAppStore((s) => s.syncWithCloud);
+  const projects = useAppStore((s) => s.projects);
+  const syncedAt = useAppStore((s) => s.syncedAt);
+  const cloudExcludedIds = useAppStore((s) => s.cloudExcludedIds);
+  const backupUnsyncedProjects = useAppStore((s) => s.backupUnsyncedProjects);
   const user = useAuthStore((s) => s.user);
   const authLoading = useAuthStore((s) => s.loading);
   const signInWithGitHub = useAuthStore((s) => s.signInWithGitHub);
@@ -150,6 +155,21 @@ export function SettingsPage() {
     if (!user) return;
     await syncWithCloud(user.id);
   };
+
+  const handleBackup = async () => {
+    if (!user) return;
+    await backupUnsyncedProjects(user.id);
+  };
+
+  // Count projects with local changes not yet pushed to cloud.
+  // Intentionally excluded projects are not counted — they’re local by choice.
+  const unsyncedCount = user && !authLoading
+    ? projects.filter((p) => {
+        if (cloudExcludedIds.includes(p.id)) return false;
+        const lastSync = syncedAt[p.id];
+        return !lastSync || p.updatedAt > lastSync;
+      }).length
+    : 0;
 
   return (
     <Box sx={{ maxWidth: 680, mx: 'auto' }}>
@@ -383,7 +403,27 @@ export function SettingsPage() {
               <Alert severity="success" sx={{ borderRadius: 2 }}>
                 Signed in as <strong>{user.email}</strong>
               </Alert>
-              <Stack direction="row" spacing={1.5}>
+              {unsyncedCount > 0 && (
+                <Alert
+                  severity="warning"
+                  sx={{ borderRadius: 2 }}
+                  action={
+                    <Button
+                      color="inherit"
+                      size="small"
+                      startIcon={syncStatus.isSyncing ? <CircularProgress size={14} color="inherit" /> : <BackupIcon />}
+                      onClick={handleBackup}
+                      disabled={syncStatus.isSyncing}
+                      sx={{ whiteSpace: 'nowrap' }}
+                    >
+                      {syncStatus.isSyncing ? 'Backing up...' : `Back Up (${unsyncedCount})`}
+                    </Button>
+                  }
+                >
+                  {unsyncedCount} project{unsyncedCount > 1 ? 's have' : ' has'} local changes not backed up to cloud.
+                </Alert>
+              )}
+              <Stack direction="row" spacing={1.5} flexWrap="wrap" gap={1}>
                 <Button
                   variant="contained"
                   startIcon={syncStatus.isSyncing ? <CircularProgress size={16} color="inherit" /> : <CloudSyncIcon />}
@@ -483,8 +523,8 @@ export function SettingsPage() {
                   try {
                     const res = await fetch(`/samples/${sample.file}`);
                     const data = await res.json();
-                    // Give a unique ID so it doesn't replace existing
-                    data.id = `sample-${Date.now()}`;
+                    // Give a unique UUID so it doesn't replace existing and is Supabase-compatible
+                    data.id = crypto.randomUUID();
                     importProject(data);
                     setImportStatus('success');
                     setImportMsg(`Loaded "${sample.label}" sample project.`);

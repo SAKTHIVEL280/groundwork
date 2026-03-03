@@ -29,6 +29,30 @@ const debouncedStorage = createJSONStorage(() => ({
   removeItem: (name: string) => localStorage.removeItem(name),
 }));
 
+// UUID validation — Supabase requires valid UUIDs as primary keys.
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Sanitizes any non-UUID project IDs to proper UUIDs.
+ * Returns the cleaned project list and a map of old-id → new-id for callers
+ * to update references (activeProjectId, deletedProjectIds, etc.).
+ */
+function sanitizeProjectUUIDs(projects: Project[]): {
+  sanitized: Project[];
+  idRemapping: Map<string, string>;
+} {
+  const idRemapping = new Map<string, string>();
+  const sanitized = projects.map((p) => {
+    if (!UUID_REGEX.test(p.id)) {
+      const newId = crypto.randomUUID();
+      idRemapping.set(p.id, newId);
+      return { ...p, id: newId, updatedAt: new Date().toISOString() };
+    }
+    return p;
+  });
+  return { sanitized, idRemapping };
+}
+
 /**
  * Ensures a project has all section fields with sensible defaults.
  * Guards against missing properties from old schemas or incomplete imports.
@@ -77,7 +101,12 @@ interface AppState {
 
   // Sync
   syncStatus: { lastSynced: string | null; isSyncing: boolean; error: string | null };
+  syncedAt: Record<string, string>; // projectId → ISO timestamp of last successful cloud push
+  cloudExcludedIds: string[]; // projects intentionally excluded from cloud by user
   syncWithCloud: (userId: string) => Promise<void>;
+  backupUnsyncedProjects: (userId: string) => Promise<void>;
+  removeFromCloud: (id: string, userId: string) => Promise<void>;
+  enableCloudBackup: (id: string) => void;
 
   // UI State
   sidebarOpen: boolean;
@@ -226,6 +255,8 @@ export const useAppStore = create<AppState>()(
 
       // --- Sync ---
       syncStatus: { lastSynced: null, isSyncing: false, error: null },
+      syncedAt: {} as Record<string, string>,
+      cloudExcludedIds: [] as string[],
 
       syncWithCloud: async (userId: string) => {
         // Prevent concurrent syncs
@@ -239,24 +270,120 @@ export const useAppStore = create<AppState>()(
             return;
           }
 
-          // Merge local + remote (passing tombstones to filter deleted)
+          // Merge local + remote (passing tombstones to filter deleted).
+          // Excluded projects are filtered from remote so they don't get re-pulled.
           const local = get().projects;
           const deletedIds = get().deletedProjectIds;
-          const merged = mergeProjects(local, pullResult.projects || [], deletedIds).map(ensureProjectSections);
-          set({ projects: merged });
+          const excludedSet = new Set(get().cloudExcludedIds);
+          const remoteFiltered = (pullResult.projects || []).filter((p) => !excludedSet.has(p.id));
+          const merged = mergeProjects(local, remoteFiltered, deletedIds).map(ensureProjectSections);
 
-          // Push merged result back
-          const pushResult = await pushProjects(merged, userId);
+          // Sanitize any non-UUID project IDs before pushing to Supabase.
+          const { sanitized, idRemapping } = sanitizeProjectUUIDs(merged);
+
+          // Persist to store — apply any ID remappings to activeProjectId, tombstones, and exclusions
+          set((state) => ({
+            projects: sanitized,
+            ...(idRemapping.size > 0 && {
+              activeProjectId:
+                state.activeProjectId && idRemapping.has(state.activeProjectId)
+                  ? idRemapping.get(state.activeProjectId)!
+                  : state.activeProjectId,
+              deletedProjectIds: state.deletedProjectIds.map((id) => idRemapping.get(id) ?? id),
+              cloudExcludedIds: state.cloudExcludedIds.map((id) => idRemapping.get(id) ?? id),
+            }),
+          }));
+
+          // Push non-excluded projects back to cloud
+          const toPush = sanitized.filter((p) => !excludedSet.has(p.id));
+          const pushResult = await pushProjects(toPush, userId);
           if (pushResult.error) {
             set({ syncStatus: { lastSynced: get().syncStatus.lastSynced, isSyncing: false, error: pushResult.error } });
             return;
           }
 
+          // Record sync timestamps only for pushed projects
           const now = new Date().toISOString();
-          set({ syncStatus: { lastSynced: now, isSyncing: false, error: null } });
+          const newSyncedAt: Record<string, string> = { ...get().syncedAt };
+          for (const p of toPush) newSyncedAt[p.id] = now;
+          set({ syncedAt: newSyncedAt, syncStatus: { lastSynced: now, isSyncing: false, error: null } });
         } catch (e) {
           set({ syncStatus: { lastSynced: get().syncStatus.lastSynced, isSyncing: false, error: String(e) } });
         }
+      },
+
+      backupUnsyncedProjects: async (userId: string) => {
+        if (get().syncStatus.isSyncing) return;
+
+        const { projects, syncedAt: currentSyncedAt, cloudExcludedIds } = get();
+        const excludedSet = new Set(cloudExcludedIds);
+
+        // Only push projects that are not excluded and have local changes not yet pushed
+        const unsynced = projects.filter((p) => {
+          if (excludedSet.has(p.id)) return false;
+          const lastSync = currentSyncedAt[p.id];
+          return !lastSync || p.updatedAt > lastSync;
+        });
+
+        if (unsynced.length === 0) return;
+
+        set({ syncStatus: { lastSynced: get().syncStatus.lastSynced, isSyncing: true, error: null } });
+        try {
+          const { sanitized, idRemapping } = sanitizeProjectUUIDs(unsynced);
+
+          // Remap any invalid IDs in the local store
+          if (idRemapping.size > 0) {
+            set((state) => ({
+              projects: state.projects.map((p) => {
+                const newId = idRemapping.get(p.id);
+                return newId ? { ...p, id: newId } : p;
+              }),
+              activeProjectId:
+                state.activeProjectId && idRemapping.has(state.activeProjectId)
+                  ? idRemapping.get(state.activeProjectId)!
+                  : state.activeProjectId,
+              deletedProjectIds: state.deletedProjectIds.map((id) => idRemapping.get(id) ?? id),
+            }));
+          }
+
+          const pushResult = await pushProjects(sanitized, userId);
+          if (pushResult.error) {
+            set({ syncStatus: { lastSynced: get().syncStatus.lastSynced, isSyncing: false, error: pushResult.error } });
+            return;
+          }
+
+          // Mark these projects as synced
+          const now = new Date().toISOString();
+          const newSyncedAt: Record<string, string> = { ...get().syncedAt };
+          for (const p of sanitized) newSyncedAt[p.id] = now;
+          set({ syncedAt: newSyncedAt, syncStatus: { lastSynced: now, isSyncing: false, error: null } });
+        } catch (e) {
+          set({ syncStatus: { lastSynced: get().syncStatus.lastSynced, isSyncing: false, error: String(e) } });
+        }
+      },
+
+      removeFromCloud: async (id: string, userId: string) => {
+        // Best-effort delete from Supabase
+        await deleteRemoteProject(id, userId).catch((e) => {
+          console.error('Failed to delete project from remote:', e);
+        });
+        // Add to exclusion list and clear its sync timestamp
+        set((state) => {
+          const newSyncedAt = { ...state.syncedAt };
+          delete newSyncedAt[id];
+          return {
+            cloudExcludedIds: state.cloudExcludedIds.includes(id)
+              ? state.cloudExcludedIds
+              : [...state.cloudExcludedIds, id],
+            syncedAt: newSyncedAt,
+          };
+        });
+      },
+
+      enableCloudBackup: (id: string) => {
+        set((state) => ({
+          cloudExcludedIds: state.cloudExcludedIds.filter((eid) => eid !== id),
+        }));
       },
 
       // --- UI ---
@@ -272,6 +399,8 @@ export const useAppStore = create<AppState>()(
         projects: state.projects,
         activeProjectId: state.activeProjectId,
         deletedProjectIds: state.deletedProjectIds,
+        syncedAt: state.syncedAt,
+        cloudExcludedIds: state.cloudExcludedIds,
       }) as unknown as AppState,
     },
   ),

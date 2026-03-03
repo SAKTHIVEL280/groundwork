@@ -41,9 +41,12 @@ import ArchiveIcon from '@mui/icons-material/Archive';
 import UnarchiveIcon from '@mui/icons-material/Unarchive';
 import VisibilityIcon from '@mui/icons-material/Visibility';
 import VisibilityOffIcon from '@mui/icons-material/VisibilityOff';
+import CloudOffIcon from '@mui/icons-material/CloudOff';
+import BackupIcon from '@mui/icons-material/Backup';
 import { getAllTemplates } from '@groundwork/logic';
 import type { Template } from '@groundwork/types';
 import { useAppStore } from '../store';
+import { useAuthStore } from '../stores/authStore';
 
 const TEMPLATE_ICONS: Record<string, React.ReactNode> = {
   Language: <LanguageIcon sx={{ fontSize: 32, color: 'primary.main' }} />,
@@ -63,6 +66,22 @@ export function HomePage() {
   const deleteProject = useAppStore((s) => s.deleteProject);
   const toggleFavorite = useAppStore((s) => s.toggleFavorite);
   const toggleArchive = useAppStore((s) => s.toggleArchive);
+  const syncedAt = useAppStore((s) => s.syncedAt);
+  const cloudExcludedIds = useAppStore((s) => s.cloudExcludedIds);
+  const removeFromCloud = useAppStore((s) => s.removeFromCloud);
+  const enableCloudBackup = useAppStore((s) => s.enableCloudBackup);
+  const user = useAuthStore((s) => s.user);
+
+  const [removeCloudConfirm, setRemoveCloudConfirm] = useState<string | null>(null);
+
+  // A project is unsynced if it was never pushed or was modified after the last push.
+  // Intentionally excluded projects are not considered "unsynced" — that's by choice.
+  const isProjectUnsynced = (p: { id: string; updatedAt: string }) => {
+    if (!user) return false;
+    if (cloudExcludedIds.includes(p.id)) return false;
+    const lastSync = syncedAt[p.id];
+    return !lastSync || p.updatedAt > lastSync;
+  };
 
   const [newProjectDialog, setNewProjectDialog] = useState(false);
   const [projectName, setProjectName] = useState('');
@@ -349,6 +368,31 @@ export function HomePage() {
                             {project.archived ? <UnarchiveIcon fontSize="small" /> : <ArchiveIcon fontSize="small" />}
                           </IconButton>
                         </Tooltip>
+                        {user && (syncedAt[project.id] || cloudExcludedIds.includes(project.id)) && (
+                          <Tooltip
+                            title={
+                              cloudExcludedIds.includes(project.id)
+                                ? 'Excluded from cloud · Click to re-enable backup'
+                                : 'Backed up to cloud · Click to remove from cloud'
+                            }
+                          >
+                            <IconButton
+                              size="small"
+                              onClick={() =>
+                                cloudExcludedIds.includes(project.id)
+                                  ? enableCloudBackup(project.id)
+                                  : setRemoveCloudConfirm(project.id)
+                              }
+                              sx={{
+                                color: cloudExcludedIds.includes(project.id) ? 'text.disabled' : 'success.main',
+                              }}
+                            >
+                              {cloudExcludedIds.includes(project.id)
+                                ? <CloudOffIcon fontSize="small" />
+                                : <BackupIcon fontSize="small" />}
+                            </IconButton>
+                          </Tooltip>
+                        )}
                         <IconButton
                           size="small"
                           aria-label={`Delete project ${project.name}`}
@@ -363,10 +407,17 @@ export function HomePage() {
                       </Stack>
                     </Box>
                     <Stack spacing={0.75}>
-                      <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <Typography variant="caption" color="text.secondary" fontWeight={500}>
-                          Progress
-                        </Typography>
+                      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                          <Typography variant="caption" color="text.secondary" fontWeight={500}>
+                            Progress
+                          </Typography>
+                          {isProjectUnsynced(project) && (
+                            <Tooltip title="Not backed up to cloud">
+                              <CloudOffIcon sx={{ fontSize: 11, color: 'warning.main' }} />
+                            </Tooltip>
+                          )}
+                        </Box>
                         <Typography variant="caption" color={project.progress >= 70 ? 'success.main' : project.progress >= 30 ? 'warning.main' : 'error.main'} fontWeight={600}>
                           {project.progress}%
                         </Typography>
@@ -427,6 +478,36 @@ export function HomePage() {
             disabled={!projectName.trim()}
           >
             Create Project
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Remove from Cloud Confirmation */}
+      <Dialog
+        open={!!removeCloudConfirm}
+        onClose={() => setRemoveCloudConfirm(null)}
+        maxWidth="xs"
+        fullWidth
+      >
+        <DialogTitle sx={{ fontWeight: 600 }}>Remove from Cloud?</DialogTitle>
+        <DialogContent>
+          <Typography color="text.secondary">
+            This project will be deleted from cloud storage and won’t sync to other devices. It stays on this device. You can re-enable backup anytime.
+          </Typography>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button onClick={() => setRemoveCloudConfirm(null)}>Cancel</Button>
+          <Button
+            variant="contained"
+            color="warning"
+            onClick={() => {
+              if (removeCloudConfirm && user) {
+                removeFromCloud(removeCloudConfirm, user.id);
+              }
+              setRemoveCloudConfirm(null);
+            }}
+          >
+            Remove from Cloud
           </Button>
         </DialogActions>
       </Dialog>
